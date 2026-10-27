@@ -236,9 +236,9 @@ input{font-family:inherit;}
   font-size:12px;color:var(--text-dim);font-weight:700;letter-spacing:.18em;text-align:center;
   margin-bottom:8px;flex-shrink:0;
 }
-.equip-slots{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:7px;flex-shrink:0;}
+.equip-slots{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px;margin-bottom:7px;flex-shrink:0;width:100%;}
 .equip-slot{
-  aspect-ratio:1;
+  aspect-ratio:1;min-width:0;overflow:hidden;
   background:var(--paper2);
   border:var(--bd2) solid var(--ink);border-radius:3px;
   box-shadow:inset 0 3px 0 rgba(0,0,0,.1);
@@ -939,20 +939,21 @@ body.is-touch .hud-right{margin-right:48px;}
 .modal.hidden{display:none;}
 .modal-box{
   width:min(430px,94vw);
+  max-height:92vh;display:flex;flex-direction:column;
   background:var(--paper);
   border:var(--bd) solid var(--ink);border-radius:5px;
   box-shadow:0 8px 0 var(--ink2), 0 18px 44px rgba(0,0,0,.6);
   overflow:hidden;
 }
 .modal-head{
-  padding:9px 14px;background:var(--red);
+  padding:9px 14px;background:var(--red);flex-shrink:0;
   border-bottom:var(--bd) solid var(--ink);
 }
 .modal-head span{
   font-size:15px;font-weight:900;color:#fff;letter-spacing:.1em;
   text-shadow:0 2px 0 var(--red-d);
 }
-.modal-body{padding:13px 14px 0;}
+.modal-body{padding:13px 14px 0;overflow:hidden;min-height:0;display:flex;flex-direction:column;}
 .modal-tip{font-size:12px;color:var(--text-dim);font-weight:700;margin-bottom:10px;}
 .modal-input{
   width:100%;margin-bottom:8px;padding:9px 11px;
@@ -1016,6 +1017,11 @@ body.is-touch .hud-right{margin-right:48px;}
 /* ==================== 装备槽（菜单） ==================== */
 .equip-slot{position:relative;cursor:default;}
 .equip-slot .es-ic{width:100%;height:100%;display:flex;align-items:center;justify-content:center;}
+.equip-slot .es-name{
+  font-size:9px;font-weight:700;color:var(--text-mute);
+  text-align:center;line-height:1.15;padding:0 1px;
+  white-space:nowrap;overflow:hidden;
+}
 .equip-slot .es-ic svg{width:72%;height:72%;}
 .equip-slot.filled{border-width:3px;}
 .equip-slot.filled::after{display:none;}
@@ -1029,6 +1035,7 @@ body.is-touch .hud-right{margin-right:48px;}
 .modal-box.wide{width:min(560px,94vw);}
 .armory-list{
   max-height:min(52vh,420px);overflow-y:auto;
+  -webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;
   display:flex;flex-direction:column;gap:6px;
   padding-right:4px;margin-bottom:4px;
 }
@@ -1092,6 +1099,7 @@ body.is-touch .hud-right{margin-right:48px;}
 
 .shop-list{
   max-height:min(52vh,420px);overflow-y:auto;
+  -webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;
   display:flex;flex-direction:column;gap:7px;padding-right:4px;
 }
 .shop-list::-webkit-scrollbar{width:7px;}
@@ -1145,3 +1153,46 @@ body.is-touch .hud-right{margin-right:48px;}
   background:var(--yellow);color:var(--ink);
   box-shadow:0 3px 0 var(--yellow-d);text-shadow:none;
 }
+
+/* 手机端：装备槽紧凑 */
+@media (max-width:640px){
+  .equip-slots{gap:4px;}
+  .equip-slot .es-name{font-size:8px;}
+  .equip-slot .es-q{font-size:7px;}
+  .armory-list,.shop-list{max-height:min(58vh,460px);}
+}
+
+/* ==================== 装备详情 ==================== */
+.item-detail{
+  background:var(--white);
+  border:var(--bd) solid var(--ink);border-radius:4px;
+  padding:12px 14px;margin-bottom:12px;
+}
+.id-icon{
+  width:60px;height:60px;margin:0 auto 8px;
+  border-radius:3px;background:var(--paper2);
+  border:2px solid var(--ink);
+  display:flex;align-items:center;justify-content:center;
+}
+.id-icon svg{width:74%;height:74%;}
+.id-head{
+  display:flex;align-items:baseline;justify-content:center;gap:7px;margin-bottom:9px;
+}
+.id-name{font-size:17px;font-weight:900;letter-spacing:.06em;}
+.id-slot{
+  font-size:10px;font-weight:900;color:#fff;background:var(--ink);
+  padding:1px 6px;border-radius:2px;
+}
+.id-affixes{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;}
+.id-affix{
+  font-size:12px;font-weight:700;color:var(--ink);
+  background:var(--paper2);border:2px solid var(--ink);border-radius:2px;
+  padding:4px 8px;text-align:center;
+}
+.id-foot{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding-top:8px;border-top:2px dashed rgba(27,20,36,.2);
+  font-size:11px;font-weight:700;color:var(--text-dim);
+}
+.id-foot b{font-size:15px;color:var(--ink);font-family:"Courier New",monospace;}
+.id-cmp{font-size:10.5px;color:var(--text-dim);}
