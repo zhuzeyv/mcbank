@@ -260,7 +260,7 @@ const Game = (function () {
       S.bossLoot = [];
       for (const c of S.chests) grantLoot(c.x, c.y, true);
       S.chests.length = 0;
-      for (let i = 0; i < 2; i++) grantLoot(e.x, e.y, true, 3);
+      for (let i = 0; i < 2; i++) grantLoot(e.x, e.y, true, 12);   // 保底史诗（20 档体系）
       win();
       return;
     }
