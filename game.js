@@ -231,6 +231,7 @@ const Game = (function () {
   }
 
   function killEnemy(e) {
+    if (typeof SFX !== 'undefined') SFX.kill();
     if (e.dead) return;
     e.dead = true;
 
@@ -778,6 +779,7 @@ const Game = (function () {
   function openChest(c) {
     const p = S.player;
     addEffect('ring', c.x, c.y, 70, '#ffd85c', 0.5);
+    if (typeof SFX !== 'undefined') SFX.chest();
     burst(c.x, c.y, 16, ['#ffd85c', '#ffe9a0', '#ffffff']);
 
     // 45% 白嫖一次升级，55% 出装备
@@ -889,6 +891,7 @@ const Game = (function () {
     S.enemies.push(e);
     S.boss = e;
     S.shake = 14;
+    if (typeof SFX !== 'undefined') SFX.boss();
     addEffect('bossRing', e.x, e.y, 160, '#e8a020', 0.9);
 
     // 登场清场：干掉玩家 420 半径内的小怪，并给 3 秒喘息
@@ -1403,6 +1406,7 @@ const Game = (function () {
   }
 
   function showLevelUp() {
+    if (typeof SFX !== 'undefined') SFX.levelup();
     if (document.getElementById('levelup').classList.contains('hidden') === false) return;
 
     const choices = buildChoices();
