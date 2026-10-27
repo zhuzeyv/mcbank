@@ -176,11 +176,23 @@ const SB = (function () {
   async function getLeaderboard(seasonId, limit) {
     limit = limit || 100;
     if (!ready()) return mockBoard(seasonId, limit);
-    const rows = await api(
-      `/rest/v1/runs?select=trainer_name,score,kills,level,zone,created_at` +
-      `&season=eq.${seasonId}&order=score.desc&limit=${limit}`
+
+    // 多拉一些原始记录，再按玩家去重（每人只留本赛季最高分）
+    const raw = await api(
+      `/rest/v1/runs?select=user_id,trainer_name,score,kills,level,zone,created_at` +
+      `&season=eq.${seasonId}&order=score.desc&limit=${Math.min(1000, limit * 6)}`
     );
-    return Array.isArray(rows) ? rows : [];
+    const rows = Array.isArray(raw) ? raw : [];
+
+    const best = new Map();
+    for (const r of rows) {
+      const key = r.user_id || ('name:' + (r.trainer_name || '?'));
+      const prev = best.get(key);
+      if (!prev || (r.score || 0) > (prev.score || 0)) best.set(key, r);
+    }
+    return Array.from(best.values())
+      .sort((a, b) => (b.score || 0) - (a.score || 0))
+      .slice(0, limit);
   }
 
   async function submitRun(run) {
