@@ -567,21 +567,21 @@ input{font-family:inherit;}
 .joystick{
   position:absolute;left:24px;bottom:24px;
   width:124px;height:124px;border-radius:50%;
-  background:radial-gradient(circle,rgba(0,0,0,.16),rgba(0,0,0,.36));
-  border:1.5px solid rgba(216,180,92,.22);
+  background:radial-gradient(circle,rgba(12,16,12,.66),rgba(6,9,6,.8));
+  border:1.5px solid rgba(216,180,92,.34);
   display:none;align-items:center;justify-content:center;
   touch-action:none;z-index:16;
-  box-shadow:inset 0 0 26px rgba(0,0,0,.55);
+  box-shadow:inset 0 0 26px rgba(0,0,0,.6), 0 2px 14px rgba(0,0,0,.4);
 }
 .joystick.active{
-  border-color:rgba(216,180,92,.55);
-  background:radial-gradient(circle,rgba(0,0,0,.26),rgba(0,0,0,.46));
+  border-color:rgba(216,180,92,.62);
+  background:radial-gradient(circle,rgba(16,21,16,.72),rgba(6,9,6,.84));
 }
 .stick-knob{
   width:54px;height:54px;border-radius:50%;
-  background:radial-gradient(circle at 35% 30%,rgba(245,223,156,.5),rgba(140,105,50,.38));
-  border:1.5px solid rgba(216,180,92,.5);
-  box-shadow:0 0 18px rgba(216,180,92,.22);
+  background:radial-gradient(circle at 35% 30%,rgba(248,228,164,.9),rgba(150,115,55,.82));
+  border:1.5px solid rgba(232,200,120,.62);
+  box-shadow:0 0 18px rgba(216,180,92,.3);
   pointer-events:none;will-change:transform;
 }
 .pause-btn{
@@ -602,6 +602,11 @@ input{font-family:inherit;}
   white-space:nowrap;
 }
 .rotate-hint.on{opacity:1;}
+
+/* 触屏设备：优先用 JS 打的 body.is-touch，媒体查询仅作兜底 */
+body.is-touch .joystick{display:flex;}
+body.is-touch .pause-btn{display:flex;}
+body.is-touch .hud-right{margin-right:46px;}
 
 @media (hover:none) and (pointer:coarse){
   .joystick{display:flex;}
