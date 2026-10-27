@@ -7,7 +7,7 @@
 const SB = (function () {
 
   const CONFIG = {
-    url: '',       // 例：https://abcdefgh.supabase.co
+    url: 'https://vlbdguleovswmchypadd.supabase.co',
     anonKey: ''    // 项目设置 → API → anon public
   };
 
