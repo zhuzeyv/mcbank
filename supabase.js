@@ -48,9 +48,14 @@ const SB = (function () {
     opts = opts || {};
     const headers = Object.assign({
       'apikey': CONFIG.anonKey,
-      'Authorization': 'Bearer ' + ((session && session.access_token) || CONFIG.anonKey),
       'Content-Type': 'application/json'
     }, opts.headers || {});
+    // 兼容两种 key：旧版 JWT（eyJ...）和新版 publishable（sb_publishable_...）
+    if (session && session.access_token) {
+      headers['Authorization'] = 'Bearer ' + session.access_token;
+    } else if (CONFIG.anonKey.indexOf('eyJ') === 0) {
+      headers['Authorization'] = 'Bearer ' + CONFIG.anonKey;
+    }
     const res = await fetch(CONFIG.url + path, {
       method: opts.method || 'GET',
       headers,
