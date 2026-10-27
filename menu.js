@@ -463,6 +463,26 @@ function renderEquip() {
       '<div class="es-q" style="background:' + q.color + '">' + q.name + '</div>' +
       '</div>';
   }).join('');
+
+  // 称号（自动穿戴最优）+ 装备提示
+  try {
+    const tt = (typeof bestTitle === 'function') ? bestTitle() : null;
+    const tEl = document.getElementById('metaTitle');
+    const dEl = document.getElementById('titleDot');
+    if (tEl) {
+      tEl.textContent = tt ? tt.name : '无称号';
+      tEl.style.color = tt ? '#237a35' : '#8a6f36';
+      if (dEl) dEl.style.display = tt ? '' : 'none';
+    }
+    const hEl = document.getElementById('equipHint');
+    if (hEl) {
+      const n = Object.keys(eq).length;
+      const parts = [];
+      if (n) parts.push('已穿戴 ' + n + ' 件');
+      if (tt) parts.push('称号 ' + tt.name + '（' + tt.text + '）');
+      hEl.textContent = parts.length ? parts.join(' · ') : '尚未穿戴装备。击败精英或首领开启宝箱可获得。';
+    }
+  } catch (e) {}
 }
 
 /* ---------- 渲染：区域 ---------- */
@@ -571,16 +591,28 @@ function renderDataPage(page) {
 }
 
 /* ---------- 收藏 / 成就 / 奖励 ---------- */
-const REWARD_TITLES = [
-  { name: '草原旅人', desc: '第一次活着走出平原' },
-  { name: '林间猎手', desc: '在森林里没被箭射穿' },
-  { name: '沙海行者', desc: '熬过了沙漠的夜' },
-  { name: '洞窟探客', desc: '听见了八条腿的声音还活着' },
-  { name: '沼泽之主', desc: '踩着泥活到了最后' },
-  { name: '下界幸存者', desc: '没被烤熟' },
-  { name: '末地归人', desc: '从虚空边上回来了' },
-  { name: '深暗回声', desc: '监守者记住了你的名字' }
+// 通关称号：自动穿戴评分最高的一个
+const TITLES = [
+  { zone:'plains', name:'草原旅人',   desc:'第一次活着走出平原',        stat:{hp:30},            text:'+30 生命',          score:30 },
+  { zone:'forest', name:'林间猎手',   desc:'在森林里没被箭射穿',        stat:{dmg:0.05},         text:'+5% 伤害',          score:25 },
+  { zone:'desert', name:'沙海行者',   desc:'熬过了沙漠的夜',            stat:{speed:0.05},       text:'+5% 移速',          score:22 },
+  { zone:'caves',  name:'洞窟探客',   desc:'听见了八条腿的声音还活着',   stat:{crit:0.04},        text:'+4% 暴击',          score:28 },
+  { zone:'swamp',  name:'沼泽之主',   desc:'踩着泥活到了最后',          stat:{armor:0.05},       text:'+5% 减伤',          score:26 },
+  { zone:'nether', name:'下界幸存者', desc:'没被烤熟',                  stat:{dmg:0.08},         text:'+8% 伤害',          score:35 },
+  { zone:'end',    name:'末地归人',   desc:'从虚空边上回来了',          stat:{haste:0.07},       text:'+7% 攻速',          score:32 },
+  { zone:'deep',   name:'深暗回声',   desc:'监守者记住了你的名字',       stat:{hp:80,dmg:0.05},   text:'+80 生命 · +5% 伤害', score:45 }
 ];
+
+/* 已拥有的称号里评分最高的那个（自动穿戴） */
+function bestTitle() {
+  const cleared = loadProgress().cleared || [];
+  let best = null;
+  for (const t of TITLES) {
+    if (cleared.indexOf(t.zone) < 0) continue;
+    if (!best || t.score > best.score) best = t;
+  }
+  return best;
+}
 
 function renderExtraPage(page) {
   const grid = document.getElementById('dataGrid');
@@ -633,18 +665,23 @@ function renderExtraPage(page) {
           <div class="dcard-meta" style="color:#9fb08c">每通关一个区域，获得一个称号</div>
         </div>
       </div>` +
-      REWARD_TITLES.map((r, i) => {
-        const z = ZONES[i];
-        const got = z && prog.cleared.includes(z.id);
-        return `<div class="dcard ${got ? 'done' : 'locked'}">
-          <div class="dcard-ic">${got ? ICON.star : '<span class="glyph">?</span>'}</div>
-          <div class="dcard-body">
-            <div class="dcard-name">${got ? r.name : '未获得'}</div>
-            <div class="dcard-meta">${z ? z.name : ''}</div>
-            <div class="dcard-desc">${got ? r.desc : '通关「' + (z ? z.name : '') + '」后获得'}</div>
-          </div>
-        </div>`;
-      }).join('');
+      (function () {
+        const cur = bestTitle();
+        return TITLES.map(function (r) {
+          const z = ZONES.find(function (x) { return x.id === r.zone; });
+          const got = prog.cleared.indexOf(r.zone) >= 0;
+          const wearing = cur && cur.zone === r.zone;
+          return '<div class="dcard ' + (got ? 'done' : 'locked') + '">' +
+            '<div class="dcard-ic">' + (got ? ICON.star : '<span class="glyph">?</span>') + '</div>' +
+            '<div class="dcard-body">' +
+              '<div class="dcard-name">' + (got ? r.name : '未获得') +
+                (wearing ? ' <span style="color:#237a35;font-size:10px">· 佩戴中</span>' : '') + '</div>' +
+              '<div class="dcard-meta">' + (z ? z.name : '') + (got ? ' · ' + r.text : '') + '</div>' +
+              '<div class="dcard-desc">' + (got ? r.desc : '通关「' + (z ? z.name : '') + '」后获得') + '</div>' +
+            '</div>' +
+          '</div>';
+        }).join('');
+      })();
   }
 }
 
