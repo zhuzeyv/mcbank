@@ -26,10 +26,11 @@ function loadProgress() {
       equipment: (obj && obj.equipment) || {},
       armory: (obj && obj.armory) || [],
       gold: (obj && typeof obj.gold === 'number') ? obj.gold : 0,
-      talents: (obj && obj.talents) || {}
+      talents: (obj && obj.talents) || {},
+      shopUntil: (obj && obj.shopUntil) || 0
     };
   } catch (e) {
-    _progressCache = { cleared: [], clearedHard: [], stats: { kills: 0, bestLevel: 0, games: 0 }, equipment: {}, armory: [], gold: 0, talents: {} };
+    _progressCache = { cleared: [], clearedHard: [], stats: { kills: 0, bestLevel: 0, games: 0 }, equipment: {}, armory: [], gold: 0, talents: {}, shopUntil: 0 };
   }
   return _progressCache;
 }
@@ -656,16 +657,35 @@ function shopPrice(it) {
   return Math.round(sellPrice(it) * 3.2);
 }
 
+const SHOP_TTL = 4 * 3600 * 1000;   // 4 小时刷新一次
+// 三格分别是：史诗 / 稀有 / 精良 —— 商城只卖好东西
+const SHOP_GRADES = [3, 2, 1];
+
 function rollShop(force) {
   const prog = loadProgress();
-  prog.shop = prog.shop || [];
-  if (force) prog.shop = [];
-  while (prog.shop.length < 3) {
-    const it = EQUIP.make(12);   // 商城货固定用较高等级，品质不会太差
-    prog.shop.push({ item: it, price: shopPrice(it) });
+  const now = Date.now();
+  const expired = !prog.shopUntil || now > prog.shopUntil;
+
+  if (force || expired || !prog.shop || prog.shop.length < 3) {
+    prog.shop = [];
+    prog.shopUntil = now + SHOP_TTL;
+    for (const g of SHOP_GRADES) {
+      const it = EQUIP.make(24, g);
+      prog.shop.push({ item: it, price: shopPrice(it) });
+    }
+    saveProgress(prog);
   }
-  saveProgress(prog);
   return prog.shop;
+}
+
+function shopTimeLeft() {
+  const prog = loadProgress();
+  if (!prog.shopUntil) return '';
+  const ms = prog.shopUntil - Date.now();
+  if (ms <= 0) return '即将刷新';
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor(ms % 3600000 / 60000);
+  return h > 0 ? (h + ' 小时 ' + m + ' 分后刷新') : (m + ' 分钟后刷新');
 }
 
 function openShop() {
@@ -687,6 +707,8 @@ function renderShop() {
 
   const gEl = document.getElementById('shopGold');
   if (gEl) gEl.textContent = gold.toLocaleString();
+  const tEl = document.getElementById('shopTimer');
+  if (tEl) tEl.textContent = shopTimeLeft();
 
   list.innerHTML = goods.map(function (g, i) {
     const it = g.item;
