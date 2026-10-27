@@ -172,6 +172,33 @@ const SB = (function () {
     } catch (e) { /* 已存在就忽略 */ }
   }
 
+  /* ---------- 进度云同步 ---------- */
+  async function loadCloudProgress() {
+    if (!ready() || !session) return null;
+    try {
+      const rows = await api(
+        `/rest/v1/profiles?id=eq.${session.user.id}&select=cleared,cleared_hard,stats`
+      );
+      if (Array.isArray(rows) && rows.length) return rows[0];
+    } catch (e) {}
+    return null;
+  }
+
+  async function saveCloudProgress(cleared, clearedHard, stats) {
+    if (!ready() || !session) return false;
+    try {
+      await api(`/rest/v1/profiles?id=eq.${session.user.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          cleared: cleared || [],
+          cleared_hard: clearedHard || [],
+          stats: stats || {}
+        })
+      });
+      return true;
+    } catch (e) { return false; }
+  }
+
   /* ---------- 排行榜 ---------- */
   async function getLeaderboard(seasonId, limit) {
     limit = limit || 100;
@@ -235,6 +262,7 @@ const SB = (function () {
   return {
     CONFIG, ready, currentSeason, seasonCountdown,
     currentUser, signUp, signIn, signOut,
+    loadCloudProgress, saveCloudProgress,
     getLeaderboard, submitRun,
     isMock: () => !ready()
   };
