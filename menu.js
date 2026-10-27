@@ -35,7 +35,24 @@ function loadProgress() {
   return _progressCache;
 }
 
+/* 品质体系 5 档 → 20 档的兼容迁移（每次保存都跑一遍，幂等） */
+function migrateProgress(p) {
+  try {
+    const QMAP = [3, 6, 9, 12, 14];   // 旧 0..4 → 扎实 / 精良 / 稀有 / 史诗 / 传说
+    const fix = function (it) {
+      if (!it || typeof it.quality !== 'number' || it.qv >= 2) return;
+      if (it.quality <= 4) it.quality = QMAP[it.quality] != null ? QMAP[it.quality] : it.quality;
+      it.qv = 2;
+    };
+    const eq = p.equipment || {};
+    Object.keys(eq).forEach(function (k) { fix(eq[k]); });
+    (p.armory || []).forEach(fix);
+    (p.shop || []).forEach(function (g) { if (g && g.item) fix(g.item); });
+  } catch (e) {}
+}
+
 function saveProgress(p) {
+  migrateProgress(p);
   _progressCache = p;
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(p)); } catch (e) {}
 }
@@ -659,7 +676,7 @@ function shopPrice(it) {
 
 const SHOP_TTL = 4 * 3600 * 1000;   // 4 小时刷新一次
 // 三格分别是：史诗 / 稀有 / 精良 —— 商城只卖好东西
-const SHOP_GRADES = [3, 2, 1];
+const SHOP_GRADES = [14, 12, 9];   // 传说 / 史诗 / 稀有（20 档体系）
 
 function rollShop(force) {
   const prog = loadProgress();
