@@ -23,10 +23,13 @@ function loadProgress() {
       cleared: obj && Array.isArray(obj.cleared) ? obj.cleared : [],
       clearedHard: obj && Array.isArray(obj.clearedHard) ? obj.clearedHard : [],
       stats: (obj && obj.stats) || { kills: 0, bestLevel: 0, games: 0 },
-      equipment: (obj && obj.equipment) || {}
+      equipment: (obj && obj.equipment) || {},
+      armory: (obj && obj.armory) || [],
+      gold: (obj && typeof obj.gold === 'number') ? obj.gold : 0,
+      talents: (obj && obj.talents) || {}
     };
   } catch (e) {
-    _progressCache = { cleared: [], clearedHard: [], stats: { kills: 0, bestLevel: 0, games: 0 }, equipment: {} };
+    _progressCache = { cleared: [], clearedHard: [], stats: { kills: 0, bestLevel: 0, games: 0 }, equipment: {}, armory: [], gold: 0, talents: {} };
   }
   return _progressCache;
 }
@@ -485,6 +488,195 @@ function renderEquip() {
   } catch (e) {}
 }
 
+/* ---------- 经济 ---------- */
+function sellPrice(it) {
+  return Math.round(EQUIP.score(it) * 2.5 + (it.quality || 0) * 15 + 10);
+}
+
+function addGold(n) {
+  const prog = loadProgress();
+  prog.gold = Math.max(0, (prog.gold || 0) + n);
+  saveProgress(prog);
+  if (typeof SB !== 'undefined' && SB.currentUser && SB.currentUser()) {
+    SB.saveCloudProgress(prog.cleared, prog.clearedHard, prog.stats, prog.equipment, prog.armory, prog.gold, prog.talents)
+      .catch(function () {});
+  }
+  refreshGold();
+  return prog.gold;
+}
+
+function refreshGold() {
+  const g = loadProgress().gold || 0;
+  const el = document.getElementById('goldNum');
+  if (el) el.textContent = g.toLocaleString();
+}
+
+/* ---------- 军械库 ---------- */
+function openArmory() {
+  renderArmory();
+  refreshGold();
+  document.getElementById('armoryModal').classList.remove('hidden');
+}
+
+function closeArmory() {
+  document.getElementById('armoryModal').classList.add('hidden');
+}
+
+function renderArmory() {
+  const list = document.getElementById('armoryList');
+  if (!list) return;
+  const prog = loadProgress();
+  const armory = prog.armory || [];
+  const eq = prog.equipment || {};
+
+  if (!armory.length) {
+    list.innerHTML = '<div class="armory-empty">军械库还是空的。<br>击败精英怪或首领开启宝箱，就有机会获得装备。</div>';
+    return;
+  }
+
+  const sorted = armory.slice().sort((a, b) => EQUIP.score(b) - EQUIP.score(a));
+  list.innerHTML = sorted.map(function (it) {
+    const q = EQUIP.qualityOf(it.quality);
+    const worn = eq[it.slot] && eq[it.slot].id === it.id;
+    return '<div class="armory-item' + (worn ? ' worn' : '') + '" data-id="' + it.id + '"' +
+      ' style="border-color:' + q.color + ';box-shadow:0 3px 0 ' + q.dark + '">' +
+      '<span class="ai-slot" style="background:' + q.color + '">' + EQUIP.SLOT_NAME[it.slot] + '</span>' +
+      '<span class="ai-main">' +
+        '<span class="ai-name" style="color:' + q.color + '">' + q.name + ' · ' + EQUIP.SLOT_NAME[it.slot] + '</span>' +
+        '<span class="ai-affixes">' + it.affixes.map(function (a) { return EQUIP.desc(a); }).join(' · ') + '</span>' +
+      '</span>' +
+      '<span class="ai-score">' + EQUIP.score(it) + '</span>' +
+      '<span class="ai-sell" data-sell="' + it.id + '">卖 ' + sellPrice(it) + '</span>' +
+      (worn ? '<span class="ai-worn">已装备</span>' : '') +
+      '</div>';
+  }).join('');
+
+  list.querySelectorAll('.armory-item').forEach(function (el) {
+    el.onclick = function () { wearItem(el.dataset.id); };
+  });
+  list.querySelectorAll('[data-sell]').forEach(function (el) {
+    el.onclick = function (ev) {
+      ev.stopPropagation();
+      sellItem(el.dataset.sell);
+    };
+  });
+}
+
+function sellItem(id) {
+  const prog = loadProgress();
+  const idx = (prog.armory || []).findIndex(function (x) { return x.id === id; });
+  if (idx < 0) return;
+  const it = prog.armory[idx];
+  const worn = prog.equipment && prog.equipment[it.slot] && prog.equipment[it.slot].id === id;
+  if (worn) { toast('已穿戴的装备不能卖，先换一件'); return; }
+
+  const price = sellPrice(it);
+  prog.armory.splice(idx, 1);
+  prog.gold = (prog.gold || 0) + price;
+  saveProgress(prog);
+  if (typeof SB !== 'undefined' && SB.currentUser && SB.currentUser()) {
+    SB.saveCloudProgress(prog.cleared, prog.clearedHard, prog.stats, prog.equipment, prog.armory, prog.gold, prog.talents)
+      .catch(function () {});
+  }
+  renderArmory();
+  refreshGold();
+  toast('卖出 ' + EQUIP.SLOT_NAME[it.slot] + ' +' + price + ' 金币');
+}
+
+function wearItem(id) {
+  const prog = loadProgress();
+  const it = (prog.armory || []).find(function (x) { return x.id === id; });
+  if (!it) return;
+  prog.equipment = prog.equipment || {};
+  prog.equipment[it.slot] = it;
+  saveProgress(prog);
+  if (typeof SB !== 'undefined' && SB.currentUser && SB.currentUser()) {
+    SB.saveCloudProgress(prog.cleared, prog.clearedHard, prog.stats, prog.equipment, prog.armory)
+      .catch(function () {});
+  }
+  renderArmory();
+  renderEquip();
+  toast('已装备 ' + EQUIP.SLOT_NAME[it.slot]);
+}
+
+/* ---------- 商城 ---------- */
+function shopPrice(it) {
+  return Math.round(sellPrice(it) * 3.2);
+}
+
+function rollShop(force) {
+  const prog = loadProgress();
+  prog.shop = prog.shop || [];
+  if (force) prog.shop = [];
+  while (prog.shop.length < 3) {
+    const it = EQUIP.make(12);   // 商城货固定用较高等级，品质不会太差
+    prog.shop.push({ item: it, price: shopPrice(it) });
+  }
+  saveProgress(prog);
+  return prog.shop;
+}
+
+function openShop() {
+  closeArmory();
+  renderShop();
+  document.getElementById('shopModal').classList.remove('hidden');
+}
+
+function closeShop() {
+  document.getElementById('shopModal').classList.add('hidden');
+}
+
+function renderShop() {
+  const list = document.getElementById('shopList');
+  if (!list) return;
+  const prog = loadProgress();
+  const goods = prog.shop && prog.shop.length ? prog.shop : rollShop(true);
+  const gold = prog.gold || 0;
+
+  const gEl = document.getElementById('shopGold');
+  if (gEl) gEl.textContent = gold.toLocaleString();
+
+  list.innerHTML = goods.map(function (g, i) {
+    const it = g.item;
+    const q = EQUIP.qualityOf(it.quality);
+    const poor = gold < g.price;
+    return '<div class="shop-item" style="border-color:' + q.color + ';box-shadow:0 3px 0 ' + q.dark + '">' +
+      '<span class="ai-slot" style="background:' + q.color + '">' + EQUIP.SLOT_NAME[it.slot] + '</span>' +
+      '<span class="si-main">' +
+        '<span class="ai-name" style="color:' + q.color + '">' + q.name + ' · ' + EQUIP.SLOT_NAME[it.slot] + '</span>' +
+        '<span class="ai-affixes">' + it.affixes.map(function (a) { return EQUIP.desc(a); }).join(' · ') + '</span>' +
+      '</span>' +
+      '<span class="shop-buy' + (poor ? ' poor' : '') + '" data-buy="' + i + '">' + g.price + '</span>' +
+      '</div>';
+  }).join('');
+
+  list.querySelectorAll('[data-buy]').forEach(function (el) {
+    el.onclick = function () { buyItem(parseInt(el.dataset.buy, 10)); };
+  });
+}
+
+function buyItem(idx) {
+  const prog = loadProgress();
+  const g = (prog.shop || [])[idx];
+  if (!g) return;
+  if ((prog.gold || 0) < g.price) { toast('金币不够，先卖点旧装备'); return; }
+
+  prog.gold -= g.price;
+  prog.armory = prog.armory || [];
+  prog.armory.unshift(g.item);
+  if (prog.armory.length > 60) prog.armory.length = 60;
+  prog.shop.splice(idx, 1);
+  saveProgress(prog);
+  rollShop();     // 自动补货
+  if (typeof SB !== 'undefined' && SB.currentUser && SB.currentUser()) {
+    SB.saveCloudProgress(prog.cleared, prog.clearedHard, prog.stats, prog.equipment, prog.armory, prog.gold, prog.talents)
+      .catch(function () {});
+  }
+  renderShop();
+  refreshGold();
+  toast('买到了 ' + EQUIP.SLOT_NAME[g.item.slot] + '（已放进军械库）');
+}
+
 /* ---------- 渲染：区域 ---------- */
 function renderZones() {
   const box = document.getElementById('zoneList');
@@ -575,19 +767,95 @@ function renderDataPage(page) {
     }).join('');
   } else if (page === 'talent') {
     title.textContent = '天赋';
-    html = Object.keys(PASSIVES).map(k => {
-      const p = PASSIVES[k];
-      return `<div class="dcard">
-        <div class="dcard-ic">${ICON[p.icon] || ''}</div>
-        <div class="dcard-body">
-          <div class="dcard-name">${p.name}</div>
-          <div class="dcard-meta">最高 ${p.maxLv} 级</div>
-          <div class="dcard-desc">${p.desc}</div>
-        </div>
-      </div>`;
-    }).join('');
+    const prog = loadProgress();
+    const gold = prog.gold || 0;
+    html =
+      '<div class="dcard" style="grid-column:1/-1;background:var(--ink);border-color:var(--ink)">' +
+        '<div class="dcard-body" style="text-align:center">' +
+          '<div class="dcard-name" style="color:var(--yellow)">永久天赋 · 金币升级</div>' +
+          '<div class="dcard-meta" style="color:#9fb08c">当前金币 ' + gold.toLocaleString() + ' · 每项最高 5 级 · 每局生效</div>' +
+        '</div>' +
+      '</div>' +
+      TALENTS.map(function (t) {
+        const lv = talentLevel(t.id);
+        const maxed = lv >= 5;
+        const price = maxed ? 0 : TALENT_COST[lv];
+        const poor = !maxed && gold < price;
+        const cur = lv ? t.unit.replace('+', '+') + ' × ' + lv : '未学习';
+        return '<div class="dcard talent-card">' +
+          '<div class="dcard-ic">' + (ICON[t.icon] || '') + '</div>' +
+          '<div class="dcard-body">' +
+            '<div class="dcard-name">' + t.name +
+              '<span class="talent-lv">' + lv + ' / 5</span></div>' +
+            '<div class="dcard-meta">' + t.unit + ' / 级' + (lv ? ' · 当前 ' + cur : '') + '</div>' +
+            '<div class="talent-dots">' +
+              [0,1,2,3,4].map(function (i) {
+                return '<i class="' + (i < lv ? 'on' : '') + '"></i>';
+              }).join('') +
+            '</div>' +
+          '</div>' +
+          '<button class="talent-buy' + (poor ? ' poor' : '') + (maxed ? ' maxed' : '') + '"' +
+            ' data-talent="' + t.id + '">' +
+            (maxed ? '满级' : price) +
+          '</button>' +
+        '</div>';
+      }).join('');
   }
   grid.innerHTML = html;
+
+  grid.querySelectorAll('[data-talent]').forEach(function (el) {
+    el.onclick = function () { buyTalent(el.dataset.talent); };
+  });
+}
+
+/* ---------- 永久天赋（金币升级） ---------- */
+const TALENT_COST = [150, 300, 600, 1200, 2400];
+
+const TALENTS = [
+  { id:'power', name:'力量', icon:'sword',  per:{ dmg:0.04 },    unit:'+4% 伤害' },
+  { id:'haste', name:'急速', icon:'fire',   per:{ haste:0.03 },  unit:'+3% 攻速' },
+  { id:'vigor', name:'体魄', icon:'heart',  per:{ hp:25 },       unit:'+25 生命' },
+  { id:'guard', name:'守护', icon:'armor',  per:{ armor:0.02 },  unit:'+2% 减伤' },
+  { id:'edge',  name:'锐利', icon:'fist',   per:{ crit:0.02 },   unit:'+2% 暴击' },
+  { id:'swift', name:'疾行', icon:'boot',   per:{ speed:0.02 },  unit:'+2% 移速' },
+  { id:'greed', name:'贪婪', icon:'magnet', per:{ pickup:0.08 }, unit:'+8% 拾取' }
+];
+
+function talentLevel(id) {
+  const t = loadProgress().talents || {};
+  return Math.max(0, Math.min(5, t[id] || 0));
+}
+
+/* 天赋总加成 */
+function talentBonus() {
+  const b = { hp:0, dmg:0, haste:0, armor:0, crit:0, speed:0, pickup:0 };
+  for (const t of TALENTS) {
+    const lv = talentLevel(t.id);
+    if (!lv) continue;
+    for (const k in t.per) b[k] = (b[k] || 0) + t.per[k] * lv;
+  }
+  return b;
+}
+
+function buyTalent(id) {
+  const prog = loadProgress();
+  prog.talents = prog.talents || {};
+  const t = TALENTS.find(function (x) { return x.id === id; });
+  if (!t) return;
+  const lv = Math.max(0, Math.min(5, prog.talents[id] || 0));
+  if (lv >= 5) { toast('已经满级了'); return; }
+  const price = TALENT_COST[lv];
+  if ((prog.gold || 0) < price) { toast('金币不够，先卖点旧装备'); return; }
+
+  prog.gold -= price;
+  prog.talents[id] = lv + 1;
+  saveProgress(prog);
+  if (typeof SB !== 'undefined' && SB.currentUser && SB.currentUser()) {
+    SB.saveCloudProgress(prog.cleared, prog.clearedHard, prog.stats, prog.equipment, prog.armory, prog.gold, prog.talents)
+      .catch(function () {});
+  }
+  renderDataPage('talent');
+  toast(t.name + ' 升到 ' + (lv + 1) + ' 级');
 }
 
 /* ---------- 收藏 / 成就 / 奖励 ---------- */
@@ -782,8 +1050,29 @@ async function syncProgressAfterAuth() {
     merged.equipment[slot] = EQUIP.score(a) >= EQUIP.score(b) ? a : b;
   }
 
+  // 军械库合并：按 id 去重，保留最新 60 件
+  const seen = {};
+  merged.armory = [];
+  [].concat(local.armory || [], cloud && cloud.armory || []).forEach(function (it) {
+    if (!it || !it.id || seen[it.id]) return;
+    seen[it.id] = 1;
+    merged.armory.push(it);
+  });
+  merged.armory.sort(function (a, b) { return EQUIP.score(b) - EQUIP.score(a); });
+  if (merged.armory.length > 60) merged.armory.length = 60;
+
+  // 金币取两边较大的（避免换设备后变少）
+  merged.gold = Math.max(local.gold || 0, (cloud && cloud.gold) || 0);
+
+  // 天赋等级取两边较高的
+  merged.talents = {};
+  const lt = local.talents || {}, ct = (cloud && cloud.talents) || {};
+  TALENTS.forEach(function (t) {
+    merged.talents[t.id] = Math.max(lt[t.id] || 0, ct[t.id] || 0);
+  });
+
   saveProgress(merged);
-  await SB.saveCloudProgress(merged.cleared, merged.clearedHard, merged.stats, merged.equipment);
+  await SB.saveCloudProgress(merged.cleared, merged.clearedHard, merged.stats, merged.equipment, merged.armory, merged.gold, merged.talents);
   if (typeof renderEquip === 'function') renderEquip();
 
   if (typeof renderZones === 'function') renderZones();
@@ -971,7 +1260,16 @@ function initMenu() {
   };
 
   document.getElementById('btnCoop').onclick = () => toast('本地单人模式，多人还在挖矿中');
-  document.getElementById('btnArmory').onclick = () => toast('军械库：击杀首领后可解锁');
+  document.getElementById('btnArmory').onclick = openArmory;
+  document.getElementById('btnArmoryClose').onclick = closeArmory;
+  document.getElementById('btnGoShop').onclick = openShop;
+  document.getElementById('btnShopClose').onclick = closeShop;
+  document.getElementById('shopModal').onclick = e => {
+    if (e.target.id === 'shopModal') closeShop();
+  };
+  document.getElementById('armoryModal').onclick = e => {
+    if (e.target.id === 'armoryModal') closeArmory();
+  };
   document.getElementById('btnTalent').onclick = () => {
     document.querySelector('.tab[data-page="talent"]').click();
   };
