@@ -53,6 +53,10 @@ function unlockNextZone(currentId, diffIdx) {
   if (!p.cleared.includes(currentId)) p.cleared.push(currentId);
   if (diffIdx >= 1 && !p.clearedHard.includes(currentId)) p.clearedHard.push(currentId);
   saveProgress(p);
+  // 已登录则同步到云端，换设备也能接着玩
+  if (typeof SB !== 'undefined' && SB.currentUser && SB.currentUser()) {
+    SB.saveCloudProgress(p.cleared, p.clearedHard, p.stats).catch(function () {});
+  }
   return idx + 1 < ZONES.length ? ZONES[idx + 1].name : null;
 }
 
@@ -63,6 +67,9 @@ function recordRun(stats) {
   p.stats.games += 1;
   p.stats.bestLevel = Math.max(p.stats.bestLevel || 0, stats.level || 0);
   saveProgress(p);
+  if (typeof SB !== 'undefined' && SB.currentUser && SB.currentUser()) {
+    SB.saveCloudProgress(p.cleared, p.clearedHard, p.stats).catch(function () {});
+  }
 }
 
 /* 成就定义 */
@@ -663,6 +670,31 @@ async function renderRank() {
 /* ---------- 账号 ---------- */
 let accMode = 'signup';
 
+/* 登录/注册后：把本地进度和云端进度合并（取并集），再上传回去 */
+async function syncProgressAfterAuth() {
+  if (typeof SB === 'undefined' || !SB.currentUser()) return;
+  const cloud = await SB.loadCloudProgress();
+  const local = loadProgress();
+
+  const union = (a, b) => Array.from(new Set([].concat(a || [], b || [])));
+
+  const merged = {
+    cleared: union(local.cleared, cloud && cloud.cleared),
+    clearedHard: union(local.clearedHard, cloud && cloud.cleared_hard),
+    stats: {
+      kills: Math.max(local.stats.kills || 0, (cloud && cloud.stats && cloud.stats.kills) || 0),
+      bestLevel: Math.max(local.stats.bestLevel || 0, (cloud && cloud.stats && cloud.stats.bestLevel) || 0),
+      games: Math.max(local.stats.games || 0, (cloud && cloud.stats && cloud.stats.games) || 0)
+    }
+  };
+
+  saveProgress(merged);
+  await SB.saveCloudProgress(merged.cleared, merged.clearedHard, merged.stats);
+
+  if (typeof renderZones === 'function') renderZones();
+  if (typeof updateStartButton === 'function') updateStartButton();
+}
+
 function refreshAccountBar() {
   const u = (typeof SB !== 'undefined') ? SB.currentUser() : null;
   const nameEl = document.getElementById('accName');
@@ -740,6 +772,7 @@ async function submitAccount() {
     closeAccountModal();
     refreshAccountBar();
     toast(accMode === 'signup' ? '账号已创建' : '登录成功');
+    syncProgressAfterAuth();   // 合并云端进度（换设备能接着玩）
   } catch (e) {
     errEl.textContent = e.message || '操作失败';
   } finally {
@@ -861,7 +894,21 @@ function initMenu() {
 
   // 键盘快捷键
   document.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && document.getElementById('menu').classList.contains('show')) {
+    if (e.key !== 'Enter') return;
+
+    // 账号弹窗打开时，回车 = 提交表单，绝不能顺手把游戏开了
+    const modal = document.getElementById('accountModal');
+    if (modal && !modal.classList.contains('hidden')) {
+      const t = e.target;
+      if (t && (t.id === 'accNameInput' || t.id === 'accPassInput' || t.id === 'accPass2Input')) {
+        e.preventDefault();
+        const btn = document.getElementById('btnAccSubmit');
+        if (btn && !btn.disabled) submitAccount();
+      }
+      return;
+    }
+
+    if (document.getElementById('menu').classList.contains('show')) {
       document.getElementById('btnStart').click();
     }
   });
