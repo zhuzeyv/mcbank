@@ -256,10 +256,11 @@ const Game = (function () {
     if (e.isBoss) {
       S.shake = 22;
       S.boss = null;
-      // BOSS 必掉两个宝箱
-      for (let i = 0; i < 2; i++) {
-        S.chests.push({ x: e.x + rnd(-40, 40), y: e.y + rnd(-40, 40), t: 0 });
-      }
+      // 通关后玩家动不了，落地宝箱吃不到 —— 改成直接结算
+      S.bossLoot = [];
+      for (const c of S.chests) grantLoot(c.x, c.y, true);
+      S.chests.length = 0;
+      for (let i = 0; i < 2; i++) grantLoot(e.x, e.y, true, 3);
       win();
       return;
     }
@@ -776,6 +777,18 @@ const Game = (function () {
   }
 
   /* ==================== 宝箱 ==================== */
+  // 直接发放战利品（不落地、不弹窗），用于通关结算
+  function grantLoot(x, y, silent, minQuality) {
+    S.bossLoot = S.bossLoot || [];
+    const it = EQUIP.make(S.level * 0.7 + S.zoneIdx * 2.5 + (silent ? 8 : 0),
+      typeof minQuality === 'number' ? minQuality : undefined);
+    const better = grantEquipment(it);
+    S.bossLoot.push({ type: 'equip', item: it, better: better });
+    if (silent) addEffect('ring', x, y, 60, '#ffd85c', 0.4);
+    return { type: 'equip', item: it, better: better };
+  }
+
+
   function openChest(c) {
     const p = S.player;
     addEffect('ring', c.x, c.y, 70, '#ffd85c', 0.5);
@@ -1406,8 +1419,9 @@ const Game = (function () {
   }
 
   function showLevelUp() {
+    // 防重入必须放在最前面：这个方法每帧都会被调用，音效放前面会一直响
+    if (!document.getElementById('levelup').classList.contains('hidden')) return;
     if (typeof SFX !== 'undefined') SFX.levelup();
-    if (document.getElementById('levelup').classList.contains('hidden') === false) return;
 
     const choices = buildChoices();
     const box = document.getElementById('cards');
@@ -2071,6 +2085,31 @@ const Game = (function () {
       <div class="res-stat"><span>击杀</span><b>${S.kills}</b></div>
       <div class="res-stat"><span>等级</span><b>${S.level}</b></div>
     `;
+    // 首领战利品
+    try {
+      const lootBox = document.getElementById('resLoot');
+      if (lootBox) {
+        const loot = S.bossLoot || [];
+        if (loot.length) {
+          lootBox.style.display = '';
+          lootBox.innerHTML = '<div class="loot-title">首领战利品</div>' +
+            loot.map(function (l) {
+              const q = EQUIP.qualityOf(l.item.quality);
+              return '<div class="loot-row">' +
+                '<span class="loot-q" style="background:' + q.color + '">' + q.name + '</span>' +
+                EQUIP.SLOT_NAME[l.item.slot] +
+                '<span class="loot-af">' +
+                  l.item.affixes.map(function (a) { return EQUIP.desc(a); }).join(' · ') +
+                '</span>' +
+                (l.better ? '<span class="loot-new">已装备</span>' : '') +
+                '</div>';
+            }).join('');
+        } else {
+          lootBox.style.display = 'none';
+        }
+      }
+    } catch (e) {}
+
     document.getElementById('result').classList.remove('hidden');
   }
 
