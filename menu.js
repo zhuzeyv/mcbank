@@ -22,10 +22,11 @@ function loadProgress() {
     _progressCache = {
       cleared: obj && Array.isArray(obj.cleared) ? obj.cleared : [],
       clearedHard: obj && Array.isArray(obj.clearedHard) ? obj.clearedHard : [],
-      stats: (obj && obj.stats) || { kills: 0, bestLevel: 0, games: 0 }
+      stats: (obj && obj.stats) || { kills: 0, bestLevel: 0, games: 0 },
+      equipment: (obj && obj.equipment) || {}
     };
   } catch (e) {
-    _progressCache = { cleared: [], clearedHard: [], stats: { kills: 0, bestLevel: 0, games: 0 } };
+    _progressCache = { cleared: [], clearedHard: [], stats: { kills: 0, bestLevel: 0, games: 0 }, equipment: {} };
   }
   return _progressCache;
 }
@@ -55,7 +56,7 @@ function unlockNextZone(currentId, diffIdx) {
   saveProgress(p);
   // 已登录则同步到云端，换设备也能接着玩
   if (typeof SB !== 'undefined' && SB.currentUser && SB.currentUser()) {
-    SB.saveCloudProgress(p.cleared, p.clearedHard, p.stats).catch(function () {});
+    SB.saveCloudProgress(p.cleared, p.clearedHard, p.stats, p.equipment).catch(function () {});
   }
   return idx + 1 < ZONES.length ? ZONES[idx + 1].name : null;
 }
@@ -68,7 +69,7 @@ function recordRun(stats) {
   p.stats.bestLevel = Math.max(p.stats.bestLevel || 0, stats.level || 0);
   saveProgress(p);
   if (typeof SB !== 'undefined' && SB.currentUser && SB.currentUser()) {
-    SB.saveCloudProgress(p.cleared, p.clearedHard, p.stats).catch(function () {});
+    SB.saveCloudProgress(p.cleared, p.clearedHard, p.stats, p.equipment).catch(function () {});
   }
 }
 
@@ -445,7 +446,23 @@ function renderRaceTalent() {
 /* ---------- 渲染：装备槽 ---------- */
 function renderEquip() {
   const box = document.getElementById('equipSlots');
-  box.innerHTML = Array.from({ length: 6 }, () => '<div class="equip-slot"></div>').join('');
+  if (!box) return;
+  const eq = (loadProgress().equipment) || {};
+  box.innerHTML = EQUIP.SLOTS.map(function (slot) {
+    const it = eq[slot];
+    const slotName = EQUIP.SLOT_NAME[slot];
+    if (!it) {
+      return '<div class="equip-slot" title="' + slotName + '（空）"></div>';
+    }
+    const q = EQUIP.qualityOf(it.quality);
+    const tips = it.affixes.map(function (a) { return EQUIP.desc(a); }).join(' / ');
+    return '<div class="equip-slot filled" ' +
+      'style="border-color:' + q.color + ';box-shadow:0 3px 0 ' + q.dark + '" ' +
+      'title="' + q.name + ' · ' + slotName + '：' + tips + '">' +
+      '<div class="es-ic">' + (ICON[EQUIP.SLOT_ICON[slot]] || '') + '</div>' +
+      '<div class="es-q" style="background:' + q.color + '">' + q.name + '</div>' +
+      '</div>';
+  }).join('');
 }
 
 /* ---------- 渲染：区域 ---------- */
@@ -717,8 +734,20 @@ async function syncProgressAfterAuth() {
     }
   };
 
+  // 装备也合并：同部位取战力更高的
+  const cloudEq = (cloud && cloud.equipment) || {};
+  const localEq = local.equipment || {};
+  merged.equipment = {};
+  for (const slot of EQUIP.SLOTS) {
+    const a = localEq[slot], b = cloudEq[slot];
+    if (!a) { if (b) merged.equipment[slot] = b; continue; }
+    if (!b) { merged.equipment[slot] = a; continue; }
+    merged.equipment[slot] = EQUIP.score(a) >= EQUIP.score(b) ? a : b;
+  }
+
   saveProgress(merged);
-  await SB.saveCloudProgress(merged.cleared, merged.clearedHard, merged.stats);
+  await SB.saveCloudProgress(merged.cleared, merged.clearedHard, merged.stats, merged.equipment);
+  if (typeof renderEquip === 'function') renderEquip();
 
   if (typeof renderZones === 'function') renderZones();
   if (typeof updateStartButton === 'function') updateStartButton();
