@@ -138,6 +138,20 @@ const Game = (function () {
       }
     } catch (e) {}
 
+    // ---- 永久天赋加成 ----
+    try {
+      if (typeof talentBonus === 'function') {
+        const tb = talentBonus();
+        if (tb.hp) p.maxHp += Math.round(tb.hp);
+        if (tb.dmg) p.dmgMul *= (1 + tb.dmg);
+        if (tb.haste) p.atkSpeedMul *= (1 + tb.haste);
+        if (tb.armor) p.armor = Math.min(0.75, p.armor + tb.armor);
+        if (tb.crit) p.critChance += tb.crit;
+        if (tb.speed) p.speed *= (1 + tb.speed);
+        if (tb.pickup) p.pickup *= (1 + tb.pickup);
+      }
+    } catch (e) {}
+
     p.hp = p.maxHp;
 
     // 初始武器
@@ -783,15 +797,21 @@ const Game = (function () {
       if (typeof loadProgress !== 'function' || typeof saveProgress !== 'function') return false;
       const prog = loadProgress();
       prog.equipment = prog.equipment || {};
+      prog.armory = prog.armory || [];
+
+      // 所有开出的装备都进军械库（最多留 60 件，避免无限膨胀）
+      prog.armory.unshift(it);
+      if (prog.armory.length > 60) prog.armory.length = 60;
+
+      // 空槽或更强则自动换上
       const cur = prog.equipment[it.slot];
       const better = !cur || EQUIP.score(it) > EQUIP.score(cur);
-      if (better) {
-        prog.equipment[it.slot] = it;
-        saveProgress(prog);
-        if (typeof SB !== 'undefined' && SB.currentUser && SB.currentUser()) {
-          SB.saveCloudProgress(prog.cleared, prog.clearedHard, prog.stats, prog.equipment)
-            .catch(function () {});
-        }
+      if (better) prog.equipment[it.slot] = it;
+
+      saveProgress(prog);
+      if (typeof SB !== 'undefined' && SB.currentUser && SB.currentUser()) {
+        SB.saveCloudProgress(prog.cleared, prog.clearedHard, prog.stats, prog.equipment, prog.armory)
+          .catch(function () {});
       }
       return better;
     } catch (e) { return false; }
@@ -2017,6 +2037,14 @@ const Game = (function () {
     if (typeof recordRun === 'function') {
       recordRun({ kills: S.kills, level: S.level });
     }
+    // 本局金币奖励
+    try {
+      if (typeof addGold === 'function') {
+        const gain = Math.round(S.kills * 1.2 + S.level * 8 + (isWin ? 150 : 30));
+        addGold(gain);
+        addText(S.player.x, S.player.y - 80, '+' + gain + ' 金币', '#ffc93c', 15);
+      }
+    } catch (e) {}
     // 上传赛季成绩（仅登录用户）
     try {
       if (typeof SB !== 'undefined' && SB.currentUser && SB.currentUser()) {
