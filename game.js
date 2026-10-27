@@ -212,11 +212,12 @@ const Game = (function () {
     }
 
     // 史莱姆分裂
-    if (e.split && !e.splitDone) {
+    // 只有大史莱姆分裂，子代不再分裂（否则无限刷经验）
+    if (e.split && !e.splitDone && !e.isChild) {
       e.splitDone = true;
       for (let i = 0; i < 2; i++) {
         const child = makeEnemy('slime', e.x + rnd(-20, 20), e.y + rnd(-20, 20), 0.55);
-        if (child) S.enemies.push(child);
+        if (child) { child.split = false; child.isChild = true; S.enemies.push(child); }
       }
     }
   }
@@ -572,8 +573,18 @@ const Game = (function () {
       hz.tick -= dt;
       if (hz.tick <= 0) {
         hz.tick = 0.4;
-        if (dist2(p.x, p.y, hz.x, hz.y) < (hz.r + p.r) * (hz.r + p.r)) {
-          damagePlayer(hz.dmg);
+        if (hz.owner === 'player') {
+          // 玩家自己的毒云：只烧敌人，绝不伤自己
+          for (const e of S.enemies) {
+            if (e.dead) continue;
+            const rr = hz.r + e.size * 0.4;
+            if (dist2(e.x, e.y, hz.x, hz.y) < rr * rr) hurtEnemy(e, hz.dmg);
+          }
+        } else {
+          // BOSS 的陨石区：伤玩家
+          if (dist2(p.x, p.y, hz.x, hz.y) < (hz.r + p.r) * (hz.r + p.r)) {
+            damagePlayer(hz.dmg);
+          }
         }
       }
       if (hz.life <= 0) S.hazards.splice(i, 1);
@@ -651,11 +662,11 @@ const Game = (function () {
     }
 
     // 史莱姆分裂
-    if (e.hp <= 0 && e.split && !e.splitDone) {
+    if (e.hp <= 0 && e.split && !e.splitDone && !e.isChild) {
       e.splitDone = true;
       for (let i = 0; i < 2; i++) {
         const child = makeEnemy('slime', e.x + rnd(-18, 18), e.y + rnd(-18, 18), 0.55);
-        if (child) S.enemies.push(child);
+        if (child) { child.split = false; child.isChild = true; S.enemies.push(child); }
       }
     }
   }
@@ -1138,7 +1149,7 @@ const Game = (function () {
     addEffect('boom', pr.x, pr.y, r, pr.color, 0.4);
     burst(pr.x, pr.y, 10, [pr.color, '#ffffff']);
     if (pr.poison) {
-      S.hazards.push({ x: pr.x, y: pr.y, r: r * 0.85, dmg: pr.dmg * 0.28, life: 2.6, tick: 0.45, color: '#8ad04a' });
+      S.hazards.push({ x: pr.x, y: pr.y, r: r * 0.85, dmg: pr.dmg * 0.28, life: 2.6, tick: 0.45, color: '#8ad04a', owner: 'player' });
     }
   }
 
@@ -1821,6 +1832,21 @@ const Game = (function () {
     document.getElementById('result').classList.add('hidden');
     document.getElementById('pausePanel').classList.add('hidden');
     document.getElementById('levelup').classList.add('hidden');
+    // 刷新区域列表：通关后新解锁的区域必须立刻可见
+    try {
+      if (typeof renderZones === 'function') {
+        if (typeof STATE !== 'undefined') {
+          // 自动选中刚解锁的下一个区域
+          const idx = ZONES.findIndex(z => z.id === STATE.zone.id);
+          if (idx >= 0 && idx + 1 < ZONES.length && typeof isZoneUnlocked === 'function'
+              && isZoneUnlocked(ZONES[idx + 1].id)) {
+            STATE.zone = ZONES[idx + 1];
+          }
+        }
+        renderZones();
+        if (typeof updateStartButton === 'function') updateStartButton();
+      }
+    } catch (e) {}
   }
 
   /* ==================== 主循环 ==================== */
