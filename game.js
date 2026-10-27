@@ -217,13 +217,15 @@ const Game = (function () {
   const stick = { dx: 0, dy: 0, active: false, id: null, cx: 0, cy: 0, maxR: 46 };
 
   // 触屏检测：不依赖 CSS 媒体查询（QQ/微信内置浏览器对 pointer/hover 报告不可靠）
+  // 判定：主指针粗糙（手机/平板），或「有触摸能力 + 窄屏」。
+  // 桌面 Chrome 的 'ontouchstart' in window 恒为 true，所以不能只看它。
   function detectTouch() {
     const coarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
-    const hasTouch = (navigator.maxTouchPoints > 0)
-      || ('ontouchstart' in window)
-      || coarse;
-    if (hasTouch) document.body.classList.add('is-touch');
-    return hasTouch;
+    const hasTouch = (navigator.maxTouchPoints > 0) || ('ontouchstart' in window);
+    const small = window.innerWidth <= 900;
+    const on = coarse || (hasTouch && small);
+    document.body.classList.toggle('is-touch', on);
+    return on;
   }
 
   function resetStickPos() {
@@ -1742,7 +1744,7 @@ const Game = (function () {
     document.getElementById('btnQuit').onclick = toMenu;
     document.getElementById('btnPauseMobile').onclick = () => togglePause();
     bindJoystick();
-    window.addEventListener('resize', () => { if (cv) resize(); });
+    window.addEventListener('resize', () => { if (cv) resize(); detectTouch(); });
     requestAnimationFrame(loop);
   }
 
