@@ -865,8 +865,8 @@ const Game = (function () {
     const e = makeEnemy(kind, p.x + Math.cos(a) * d, p.y + Math.sin(a) * d, 1);
     if (!e) return;
     e.elite = true;
-    e.maxHp = e.hp = e.hp * 3.2;
-    e.dmg *= 1.4;
+    e.maxHp = e.hp = e.hp * 3.4;
+    e.dmg *= 1.5;
     e.size *= 1.28;
     e.xp *= 5;
     e.spd *= 0.92;
@@ -1006,7 +1006,7 @@ const Game = (function () {
     const base = MOBS[kind];
     if (!base) return null;
     scale = scale || 1;
-    const tScale = 1 + S.time / 165;
+    const tScale = 1 + S.time / 148;   // 玩家有装备/称号/天赋后变强，怪也得跟上
     const hp = base.hp * S.zone.hpMul * S.diff.hp * tScale * scale;
     return {
       x, y,
@@ -1015,7 +1015,7 @@ const Game = (function () {
       skin: base.skin,
       hp, maxHp: hp,
       spd: base.spd,
-      dmg: base.dmg * S.diff.dmg,
+      dmg: base.dmg * S.diff.dmg * 1.10,   // 玩家变强了，怪也得跟上
       xp: base.xp,
       ranged: !!base.ranged,
       explode: !!base.explode,
