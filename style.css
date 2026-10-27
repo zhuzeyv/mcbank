@@ -407,6 +407,8 @@ input{font-family:inherit;}
 .dcard-name{font-size:13px;color:var(--ink);font-weight:900;letter-spacing:.04em;}
 .dcard-meta{font-size:10px;color:var(--text-dim);margin-top:2px;font-weight:700;}
 .dcard-desc{font-size:10.5px;color:var(--text-dim);line-height:1.55;margin-top:3px;}
+.dcard.done{border-color:var(--green);box-shadow:0 3px 0 var(--green-d);}
+.dcard.locked{opacity:.5;}
 .soon{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;}
 .soon-mark{font-size:46px;opacity:.4;}
 .soon h2{font-size:24px;color:var(--ink);letter-spacing:.16em;font-weight:900;}
