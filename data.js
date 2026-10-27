@@ -552,17 +552,17 @@ const WEAPONS = {
   iron_sword: {
     name: '铁剑', icon: 'sword', type: 'melee', maxLv: 8,
     desc: '向前方横扫，命中扇形内所有敌人。',
-    cd: 0.62, dmg: 15, range: 74, arc: 2.0
+    cd: 0.62, dmg: 22, range: 78, arc: 2.0
   },
   shield_bash: {
     name: '盾击', icon: 'shield', type: 'melee', maxLv: 8,
     desc: '举盾前冲，撞击范围内的敌人并短暂击退。',
-    cd: 0.9, dmg: 18, range: 82, arc: 2.6, knock: 190
+    cd: 0.85, dmg: 27, range: 86, arc: 2.6, knock: 190
   },
   dagger: {
     name: '匕首', icon: 'dagger', type: 'melee', maxLv: 8,
     desc: '极快的短刺，只打前方一个目标，但几乎不停手。',
-    cd: 0.24, dmg: 8, range: 58, arc: 1.2, single: true
+    cd: 0.24, dmg: 11, range: 62, arc: 1.2, single: true
   },
   bow: {
     name: '弓', icon: 'bow', type: 'projectile', maxLv: 8,
@@ -704,42 +704,42 @@ const MOBS = {
 /* ---------- 首领 ---------- */
 const BOSSES = {
   plains: {
-    name: '僵尸王', hpMul: 30, spd: 46, dmg: 26, size: 118, xp: 220, kind: 'humanoid',
+    name: '僵尸王', hpMul: 30, spd: 46, dmg: 18, size: 118, xp: 220, kind: 'humanoid',
     skin: { head: '#3f6a30', hair: '#d8b45c', body: '#2a4a6a', arm: '#3f6a30', leg: '#1e2a44', eye: '#f0d040' },
     skills: ['summon', 'charge']
   },
   forest: {
-    name: '骷髅领主', hpMul: 30, spd: 58, dmg: 24, size: 114, xp: 260, kind: 'humanoid', ranged: true,
+    name: '骷髅领主', hpMul: 30, spd: 58, dmg: 17, size: 114, xp: 260, kind: 'humanoid', ranged: true,
     skin: { head: '#e8e8dc', hair: '#c8a850', body: '#d0d0c4', arm: '#e8e8dc', leg: '#b8b8ac', eye: '#c8302a' },
     skills: ['volley', 'summon']
   },
   desert: {
-    name: '尸壳法老', hpMul: 32, spd: 50, dmg: 30, size: 120, xp: 300, kind: 'humanoid',
+    name: '尸壳法老', hpMul: 32, spd: 50, dmg: 21, size: 120, xp: 300, kind: 'humanoid',
     skin: { head: '#c8b070', hair: '#e8c040', body: '#d8c890', arm: '#c8b070', leg: '#a89860', eye: '#3a2a10' },
     skills: ['summon', 'quake']
   },
   caves: {
-    name: '蜘蛛母巢', hpMul: 34, spd: 88, dmg: 26, size: 124, xp: 340, kind: 'spider',
+    name: '蜘蛛母巢', hpMul: 34, spd: 88, dmg: 18, size: 124, xp: 340, kind: 'spider',
     skin: { body: '#241e1a', dark: '#140e0c', eye: '#e04030' },
     skills: ['summon', 'charge']
   },
   swamp: {
-    name: '史莱姆巨兽', hpMul: 38, spd: 40, dmg: 32, size: 136, xp: 380, kind: 'slime',
+    name: '史莱姆巨兽', hpMul: 38, spd: 40, dmg: 22, size: 136, xp: 380, kind: 'slime',
     skin: { body: '#5aa834', dark: '#3a7a20', eye: '#0e140e' },
     skills: ['quake', 'summon']
   },
   nether: {
-    name: '烈焰人领主', hpMul: 40, spd: 54, dmg: 34, size: 124, xp: 420, kind: 'blaze', ranged: true,
+    name: '烈焰人领主', hpMul: 40, spd: 54, dmg: 24, size: 124, xp: 420, kind: 'blaze', ranged: true,
     skin: { body: '#f0a820', dark: '#c07010', eye: '#fff8c0' },
     skills: ['volley', 'meteor']
   },
   end: {
-    name: '末影龙', hpMul: 46, spd: 78, dmg: 40, size: 150, xp: 520, kind: 'dragon',
+    name: '末影龙', hpMul: 46, spd: 78, dmg: 28, size: 150, xp: 520, kind: 'dragon',
     skin: { body: '#1a1626', dark: '#0e0a18', eye: '#d060f0' },
     skills: ['meteor', 'charge', 'volley']
   },
   deepdark: {
-    name: '监守者', hpMul: 54, spd: 64, dmg: 48, size: 142, xp: 640, kind: 'warden',
+    name: '监守者', hpMul: 54, spd: 64, dmg: 34, size: 142, xp: 640, kind: 'warden',
     skin: { body: '#1c3438', dark: '#0e1e22', eye: '#40e0d0' },
     skills: ['sonic', 'quake', 'charge']
   }
