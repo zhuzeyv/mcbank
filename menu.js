@@ -455,7 +455,8 @@ function renderEquip() {
     const it = eq[slot];
     const slotName = EQUIP.SLOT_NAME[slot];
     if (!it) {
-      return '<div class="equip-slot" title="' + slotName + '（空）"></div>';
+      return '<div class="equip-slot" title="' + slotName + '（空）">' +
+        '<span class="es-name">' + slotName + '</span></div>';
     }
     const q = EQUIP.qualityOf(it.quality);
     const tips = it.affixes.map(function (a) { return EQUIP.desc(a); }).join(' / ');
@@ -552,7 +553,7 @@ function renderArmory() {
   }).join('');
 
   list.querySelectorAll('.armory-item').forEach(function (el) {
-    el.onclick = function () { wearItem(el.dataset.id); };
+    el.onclick = function () { openItemDetail(el.dataset.id); };
   });
   list.querySelectorAll('[data-sell]').forEach(function (el) {
     el.onclick = function (ev) {
@@ -565,10 +566,10 @@ function renderArmory() {
 function sellItem(id) {
   const prog = loadProgress();
   const idx = (prog.armory || []).findIndex(function (x) { return x.id === id; });
-  if (idx < 0) return;
+  if (idx < 0) return false;
   const it = prog.armory[idx];
   const worn = prog.equipment && prog.equipment[it.slot] && prog.equipment[it.slot].id === id;
-  if (worn) { toast('已穿戴的装备不能卖，先换一件'); return; }
+  if (worn) { toast('已穿戴的装备不能卖，先换一件'); return false; }
 
   const price = sellPrice(it);
   prog.armory.splice(idx, 1);
@@ -581,6 +582,56 @@ function sellItem(id) {
   renderArmory();
   refreshGold();
   toast('卖出 ' + EQUIP.SLOT_NAME[it.slot] + ' +' + price + ' 金币');
+  return true;
+}
+
+/* ---------- 装备详情 ---------- */
+let detailId = null;
+
+function openItemDetail(id) {
+  const prog = loadProgress();
+  const it = (prog.armory || []).find(function (x) { return x.id === id; });
+  if (!it) return;
+  detailId = id;
+
+  const q = EQUIP.qualityOf(it.quality);
+  const cur = (prog.equipment || {})[it.slot];
+  const worn = cur && cur.id === it.id;
+  const myScore = EQUIP.score(it);
+  const curScore = cur ? EQUIP.score(cur) : 0;
+
+  let cmp = '空槽，可以直接穿';
+  if (worn) cmp = '正在穿戴';
+  else if (cur) cmp = myScore > curScore ? '比当前强 ' + (myScore - curScore) : '比当前弱 ' + (curScore - myScore);
+
+  document.getElementById('itemTitle').textContent = q.name + ' · ' + EQUIP.SLOT_NAME[it.slot];
+  document.getElementById('itemBody').innerHTML =
+    '<div class="item-detail" style="border-color:' + q.color + ';box-shadow:0 5px 0 ' + q.dark + '">' +
+      '<div class="id-icon">' + (ICON[EQUIP.SLOT_ICON[it.slot]] || '') + '</div>' +
+      '<div class="id-head">' +
+        '<span class="id-name" style="color:' + q.color + '">' + q.name + '</span>' +
+        '<span class="id-slot">' + EQUIP.SLOT_NAME[it.slot] + '</span>' +
+      '</div>' +
+      '<div class="id-affixes">' +
+        it.affixes.map(function (a) { return '<div class="id-affix">' + EQUIP.desc(a) + '</div>'; }).join('') +
+      '</div>' +
+      '<div class="id-foot">' +
+        '<span>战力 <b>' + myScore + '</b></span>' +
+        '<span class="id-cmp">' + cmp + '</span>' +
+      '</div>' +
+    '</div>';
+
+  const wearBtn = document.getElementById('btnItemWear');
+  wearBtn.textContent = worn ? '已穿戴' : '穿戴';
+  wearBtn.disabled = worn;
+  document.getElementById('btnItemSell').textContent = '卖出 ' + sellPrice(it);
+
+  document.getElementById('itemModal').classList.remove('hidden');
+}
+
+function closeItemDetail() {
+  document.getElementById('itemModal').classList.add('hidden');
+  detailId = null;
 }
 
 function wearItem(id) {
@@ -1263,6 +1314,19 @@ function initMenu() {
   document.getElementById('btnArmory').onclick = openArmory;
   document.getElementById('btnArmoryClose').onclick = closeArmory;
   document.getElementById('btnGoShop').onclick = openShop;
+  document.getElementById('btnItemClose').onclick = closeItemDetail;
+  document.getElementById('itemModal').onclick = e => {
+    if (e.target.id === 'itemModal') closeItemDetail();
+  };
+  document.getElementById('btnItemWear').onclick = () => {
+    if (!detailId) return;
+    wearItem(detailId);
+    closeItemDetail();
+  };
+  document.getElementById('btnItemSell').onclick = () => {
+    if (!detailId) return;
+    if (sellItem(detailId)) closeItemDetail();
+  };
   document.getElementById('btnShopClose').onclick = closeShop;
   document.getElementById('shopModal').onclick = e => {
     if (e.target.id === 'shopModal') closeShop();
