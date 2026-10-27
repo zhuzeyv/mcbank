@@ -224,14 +224,14 @@ const SB = (function () {
     if (!ready() || !session) return null;
     try {
       const rows = await api(
-        `/rest/v1/profiles?id=eq.${session.user.id}&select=cleared,cleared_hard,stats,equipment`
+        `/rest/v1/profiles?id=eq.${session.user.id}&select=cleared,cleared_hard,stats,equipment,armory,gold,talents`
       );
       if (Array.isArray(rows) && rows.length) return rows[0];
     } catch (e) {}
     return null;
   }
 
-  async function saveCloudProgress(cleared, clearedHard, stats, equipment) {
+  async function saveCloudProgress(cleared, clearedHard, stats, equipment, armory, gold, talents) {
     if (!ready() || !session) return false;
     try {
       await api(`/rest/v1/profiles?id=eq.${session.user.id}`, {
@@ -240,7 +240,10 @@ const SB = (function () {
           cleared: cleared || [],
           cleared_hard: clearedHard || [],
           stats: stats || {},
-          equipment: equipment || {}
+          equipment: equipment || {},
+          armory: armory || [],
+          gold: gold || 0,
+          talents: talents || {}
         })
       });
       return true;
