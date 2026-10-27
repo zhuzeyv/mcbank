@@ -23,10 +23,20 @@
   <div class="wrap">
 
     <header class="hero">
+      <div class="account-bar" id="accountBar">
+        <div class="acc-avatar" id="accAvatar">?</div>
+        <div class="acc-info">
+          <div class="acc-name" id="accName">游客</div>
+          <div class="acc-sub" id="accSub">进度仅保存在本机</div>
+        </div>
+        <button class="acc-btn" id="btnAccount">保存到账号</button>
+      </div>
+
       <h1>方块幸存者</h1>
       <div class="hero-sub">MINECRAFT &nbsp;·&nbsp; SURVIVORS</div>
       <nav class="tabs" id="tabs">
         <button class="tab on" data-page="char">角色</button>
+        <button class="tab" data-page="rank">排行榜</button>
         <button class="tab" data-page="codex">图鉴</button>
         <button class="tab" data-page="loot">掉落表</button>
         <button class="tab" data-page="talent">天赋</button>
@@ -108,6 +118,14 @@
       <section class="panel panel-full">
         <div class="panel-title"><i></i><span id="dataTitle">图鉴</span><i></i></div>
         <div class="card-grid" id="dataGrid"></div>
+      </section>
+    </div>
+
+    <!-- ---------- 排行榜 ---------- -->
+    <div class="cols single" id="pageRank" hidden>
+      <section class="panel panel-full">
+        <div class="panel-title"><i></i><span>排行榜</span><i></i></div>
+        <div class="rank-wrap" id="rankWrap"></div>
       </section>
     </div>
 
@@ -204,7 +222,31 @@
 
 <div id="toast" class="toast"></div>
 
+<!-- 账号弹窗 -->
+<div class="modal hidden" id="accountModal">
+  <div class="modal-box">
+    <div class="modal-head"><span id="modalTitle">保存到账号</span></div>
+    <div class="modal-body">
+      <p class="modal-tip" id="modalTip">你将会保留全部游客进度。</p>
+      <input id="accNameInput" class="modal-input" placeholder="训练家名称" maxlength="16" autocomplete="off">
+      <input id="accPassInput" class="modal-input" type="password" placeholder="密码" autocomplete="new-password">
+      <input id="accPass2Input" class="modal-input" type="password" placeholder="再输入一次密码" autocomplete="new-password">
+      <p class="modal-note">至少 8 个字符。我们不需要邮箱，所以忘记密码就无法找回。</p>
+      <p class="modal-err" id="accErr"></p>
+    </div>
+    <div class="modal-foot">
+      <button class="modal-btn ghost" id="btnAccCancel">取消</button>
+      <button class="modal-btn primary" id="btnAccSubmit">创建账号</button>
+    </div>
+    <div class="modal-switch">
+      <span id="accSwitchText">已有账号？</span>
+      <button id="btnAccSwitch">去登录</button>
+    </div>
+  </div>
+</div>
+
 <script src="data.js"></script>
+<script src="supabase.js"></script>
 <script src="menu.js"></script>
 <script src="game.js"></script>
 </body>
