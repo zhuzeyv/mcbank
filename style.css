@@ -1024,3 +1024,124 @@ body.is-touch .hud-right{margin-right:48px;}
   font-size:8px;font-weight:900;text-align:center;color:#fff;
   line-height:1.4;
 }
+
+/* ==================== 军械库 ==================== */
+.modal-box.wide{width:min(560px,94vw);}
+.armory-list{
+  max-height:min(52vh,420px);overflow-y:auto;
+  display:flex;flex-direction:column;gap:6px;
+  padding-right:4px;margin-bottom:4px;
+}
+.armory-list::-webkit-scrollbar{width:7px;}
+.armory-list::-webkit-scrollbar-thumb{background:var(--ink2);}
+.armory-empty{
+  text-align:center;padding:30px 12px;
+  font-size:12px;font-weight:700;color:var(--text-dim);line-height:1.7;
+}
+.armory-item{
+  position:relative;display:flex;align-items:center;gap:9px;
+  width:100%;padding:7px 9px;text-align:left;
+  background:var(--white);
+  border:var(--bd2) solid var(--ink);border-radius:3px;
+  box-shadow:0 3px 0 var(--ink2);
+  transition:transform .08s, box-shadow .08s;
+  flex-shrink:0;
+}
+.armory-item:active{transform:translateY(3px);box-shadow:none;}
+.armory-item.worn{outline:3px solid var(--green);outline-offset:-3px;}
+.ai-slot{
+  flex-shrink:0;padding:2px 6px;border-radius:2px;
+  font-size:9px;font-weight:900;color:#fff;
+  border:2px solid var(--ink);
+  white-space:nowrap;
+}
+.ai-main{flex:1;min-width:0;}
+.ai-name{font-size:13px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ai-affixes{font-size:10px;color:var(--text-dim);font-weight:700;margin-top:2px;line-height:1.4;}
+.ai-score{
+  flex-shrink:0;font-size:14px;font-weight:900;color:var(--ink);
+  font-family:"Courier New",monospace;
+}
+.ai-worn{
+  position:absolute;right:6px;top:-8px;
+  font-size:8.5px;font-weight:900;color:#fff;
+  background:var(--green);padding:0 5px;border-radius:2px;
+  border:1.5px solid var(--ink);
+}
+
+/* ==================== 金币 / 商城 ==================== */
+.armory-top{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin-bottom:9px;
+}
+.gold-chip{
+  flex-shrink:0;padding:2px 9px;border-radius:2px;
+  background:var(--yellow);border:2px solid var(--ink);
+  font-size:11px;font-weight:900;color:var(--ink);
+  white-space:nowrap;
+}
+.gold-chip b{font-family:"Courier New",monospace;font-size:13px;}
+.ai-sell{
+  flex-shrink:0;padding:3px 7px;border-radius:2px;
+  background:var(--paper2);border:2px solid var(--ink);
+  font-size:10px;font-weight:900;color:var(--ink);
+  white-space:nowrap;cursor:pointer;
+}
+.ai-sell:active{transform:translateY(1px);}
+.ai-sell:hover{background:var(--yellow);}
+
+.shop-list{
+  max-height:min(52vh,420px);overflow-y:auto;
+  display:flex;flex-direction:column;gap:7px;padding-right:4px;
+}
+.shop-list::-webkit-scrollbar{width:7px;}
+.shop-list::-webkit-scrollbar-thumb{background:var(--ink2);}
+.shop-item{
+  display:flex;align-items:center;gap:9px;
+  padding:8px 10px;flex-shrink:0;
+  background:var(--white);
+  border:var(--bd2) solid var(--ink);border-radius:3px;
+  box-shadow:0 3px 0 var(--ink2);
+}
+.shop-item .si-main{flex:1;min-width:0;}
+.shop-buy{
+  flex-shrink:0;padding:6px 11px;border-radius:3px;
+  background:var(--green);color:#fff;
+  border:2px solid var(--ink);
+  font-size:12px;font-weight:900;white-space:nowrap;
+  box-shadow:0 3px 0 var(--green-d);
+  text-shadow:0 1px 0 var(--green-d);
+  cursor:pointer;
+}
+.shop-buy:active{transform:translateY(3px);box-shadow:none;}
+.shop-buy.poor{background:#8a8a94;box-shadow:0 3px 0 #5a5a68;text-shadow:none;}
+
+/* ==================== 天赋 ==================== */
+.talent-card{align-items:center;}
+.talent-lv{
+  display:inline-block;margin-left:6px;font-size:10px;color:var(--text-dim);
+  font-family:"Courier New",monospace;font-weight:900;
+}
+.talent-dots{display:flex;gap:3px;margin-top:5px;}
+.talent-dots i{
+  width:14px;height:6px;background:var(--paper2);
+  border:1.5px solid var(--ink);border-radius:1px;
+  display:block;
+}
+.talent-dots i.on{background:var(--yellow);}
+.talent-buy{
+  flex-shrink:0;min-width:56px;padding:6px 8px;
+  background:var(--green);color:#fff;
+  border:2px solid var(--ink);border-radius:3px;
+  font-size:12px;font-weight:900;
+  font-family:"Courier New",monospace;
+  box-shadow:0 3px 0 var(--green-d);
+  text-shadow:0 1px 0 var(--green-d);
+  cursor:pointer;
+}
+.talent-buy:active{transform:translateY(3px);box-shadow:none;}
+.talent-buy.poor{background:#8a8a94;box-shadow:0 3px 0 #5a5a68;text-shadow:none;}
+.talent-buy.maxed{
+  background:var(--yellow);color:var(--ink);
+  box-shadow:0 3px 0 var(--yellow-d);text-shadow:none;
+}
