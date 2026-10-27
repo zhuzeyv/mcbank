@@ -1,1 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>方块幸存者 · Minecraft Survivors</title>
+<meta name="description" content="一个 Minecraft 风格的网页肉鸽：选职业、进区域、砍穿尸潮，击杀首领解锁新世界。">
+<meta name="theme-color" content="#0a0d0a">
+<meta property="og:title" content="方块幸存者 · Minecraft Survivors">
+<meta property="og:description" content="选职业、进区域、砍穿尸潮，击杀首领解锁新世界。">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%235d8a3c'/%3E%3Crect x='4' y='3' width='8' height='10' fill='%232fa8a8'/%3E%3Crect x='4' y='3' width='8' height='2.5' fill='%233a2a18'/%3E%3Crect x='5' y='7' width='2' height='2' fill='%23111'/%3E%3Crect x='9' y='7' width='2' height='2' fill='%23111'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="bg-layer"></div>
+<div class="bg-trees"></div>
+<div class="bg-vignette"></div>
+
+<!-- ==================== 主菜单 ==================== -->
+<div id="menu" class="screen show">
+  <div class="wrap">
+
+    <header class="hero">
+      <h1>方块幸存者</h1>
+      <div class="hero-sub">MINECRAFT &nbsp;·&nbsp; SURVIVORS</div>
+      <nav class="tabs" id="tabs">
+        <button class="tab on" data-page="char">角色</button>
+        <button class="tab" data-page="codex">图鉴</button>
+        <button class="tab" data-page="loot">掉落表</button>
+        <button class="tab" data-page="talent">天赋</button>
+        <button class="tab" data-page="collection">收藏</button>
+        <button class="tab" data-page="achieve">成就</button>
+        <button class="tab" data-page="reward">奖励</button>
+      </nav>
+    </header>
+
+    <!-- ---------- 角色页 ---------- -->
+    <div class="cols" id="pageChar">
+
+      <!-- 左：职业 -->
+      <section class="panel">
+        <div class="panel-title"><i></i><span>职业</span><i></i></div>
+        <div class="class-grid" id="classGrid"></div>
+        <div class="cls-info">
+          <h2 id="clsName">剑士</h2>
+          <p id="clsDesc"></p>
+          <div class="stat-row">
+            <div class="stat"><span>生命值</span><b id="clsHp">230</b></div>
+            <div class="stat"><span>初始武器</span><b id="clsWeapon">铁剑</b></div>
+            <div class="stat"><span>已解锁区域</span><b id="clsZones">1 / 8</b></div>
+          </div>
+          <div class="pool-label">技能池</div>
+          <div class="pool" id="clsPool"></div>
+        </div>
+      </section>
+
+      <!-- 中：角色 -->
+      <section class="panel panel-char">
+        <div class="char-top">
+          <div class="portrait">
+            <canvas id="portrait" width="150" height="220"></canvas>
+          </div>
+          <div class="char-fields">
+            <div class="name-row">
+              <input id="charName" value="史蒂夫" maxlength="14" spellcheck="false">
+              <button id="btnRandom" class="mini">随机</button>
+            </div>
+            <div class="race-row" id="raceRow"></div>
+            <div class="meta-row">
+              <span id="metaRace">人类</span>
+              <span class="dot">·</span>
+              <span id="metaClass">剑士</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="sub-title">装备</div>
+        <div class="equip-slots" id="equipSlots"></div>
+        <div class="equip-hint">尚未穿戴装备。首领掉落会存入军械库，永久保留。</div>
+
+        <div class="two-btn">
+          <button class="wide-btn" id="btnArmory">
+            <b>军械库</b><span>种族 · 外观 · 装备与掉落</span>
+          </button>
+          <button class="wide-btn" id="btnTalent">
+            <b>天赋</b><span>0 / 32 点</span>
+          </button>
+        </div>
+
+        <div class="race-talent">
+          <div class="rt-head"><b id="raceName">人类</b><span class="rt-tag">种族天赋</span></div>
+          <ul id="racePerks"></ul>
+        </div>
+      </section>
+
+      <!-- 右：区域 -->
+      <section class="panel panel-zone">
+        <div class="panel-title"><i></i><span>区域</span><i></i></div>
+        <div class="zone-list" id="zoneList"></div>
+      </section>
+
+    </div>
+
+    <!-- ---------- 数据页（图鉴/掉落表/天赋） ---------- -->
+    <div class="cols single" id="pageData" hidden>
+      <section class="panel panel-full">
+        <div class="panel-title"><i></i><span id="dataTitle">图鉴</span><i></i></div>
+        <div class="card-grid" id="dataGrid"></div>
+      </section>
+    </div>
+
+    <!-- ---------- 占位页 ---------- -->
+    <div class="cols single" id="pageSoon" hidden>
+      <section class="panel panel-full soon">
+        <div class="soon-mark">⛏</div>
+        <h2 id="soonTitle">收藏</h2>
+        <p>这个区块还在挖掘中。先把角色和战斗做扎实。</p>
+      </section>
+    </div>
+
+    <!-- ---------- 底栏 ---------- -->
+    <footer class="dock">
+      <button class="dock-side" id="btnDiff">
+        <span class="ds-t">冒险选项</span>
+        <span class="ds-v" id="diffVal">普通难度</span>
+      </button>
+      <button class="dock-main" id="btnStart">
+        <span class="dm-t" id="startTitle">进入平原</span>
+        <span class="dm-s" id="startSub">僵尸王将于 02:00 现身</span>
+      </button>
+      <button class="dock-side" id="btnCoop">
+        <span class="ds-t">合作</span>
+        <span class="ds-v">和朋友一起玩</span>
+      </button>
+    </footer>
+
+    <div class="hint">WASD / 方向键 移动 &nbsp;·&nbsp; 自动攻击 &nbsp;·&nbsp; 升级时按 1 / 2 / 3 选择 &nbsp;·&nbsp; 击杀首领获胜 &nbsp;·&nbsp; 空格暂停</div>
+  </div>
+</div>
+
+<!-- ==================== 游戏 ==================== -->
+<div id="game" class="screen">
+  <canvas id="cv"></canvas>
+
+  <div class="hud">
+    <div class="hud-top">
+      <div class="hp-wrap">
+        <div class="hp-bar"><div class="hp-fill" id="hpFill"></div><span id="hpText">230 / 230</span></div>
+      </div>
+      <div class="xp-wrap">
+        <div class="xp-bar"><div class="xp-fill" id="xpFill"></div></div>
+        <div class="lv-badge">Lv.<b id="lvNum">1</b></div>
+      </div>
+      <div class="hud-right">
+        <div class="timer" id="timer">00:00</div>
+        <div class="kills"><span>击杀</span><b id="killNum">0</b></div>
+      </div>
+    </div>
+
+    <div class="boss-bar hidden" id="bossBar">
+      <div class="boss-name" id="bossName">僵尸王</div>
+      <div class="boss-track"><div class="boss-fill" id="bossFill"></div></div>
+    </div>
+
+    <div class="hud-bottom">
+      <div class="slot-bar" id="slotBar"></div>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="levelup">
+    <div class="lv-head">升 级</div>
+    <div class="lv-sub">选择一项强化</div>
+    <div class="cards" id="cards"></div>
+    <div class="lv-tip">点击卡片选择 · 键盘 1 / 2 / 3</div>
+  </div>
+
+  <div class="overlay hidden" id="result">
+    <div class="res-title" id="resTitle">被击败了</div>
+    <div class="res-sub" id="resSub">僵尸从背后抱住了你</div>
+    <div class="res-stats" id="resStats"></div>
+    <div class="res-btns">
+      <button class="res-btn" id="btnRetry">再来一局</button>
+      <button class="res-btn ghost" id="btnBack">返回菜单</button>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="pausePanel">
+    <div class="res-title small">已暂停</div>
+    <div class="res-btns">
+      <button class="res-btn" id="btnResume">继续</button>
+      <button class="res-btn ghost" id="btnQuit">放弃并返回</button>
+    </div>
+  </div>
+
+  <!-- 触屏操作 -->
+  <div class="joystick" id="joystick">
+    <div class="stick-knob" id="stickKnob"></div>
+  </div>
+  <button class="pause-btn" id="btnPauseMobile" aria-label="暂停">❚❚</button>
+  <div class="rotate-hint" id="rotateHint">横屏视野更佳</div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="data.js"></script>
+<script src="menu.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
 
