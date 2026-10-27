@@ -128,6 +128,7 @@ const Game = (function () {
       boss: null,
       bossSpawned: false,
       bossGrace: 0,
+      eliteTimer: 10,
       shake: 0,
       hurtFlash: 0,
       theme: zone.theme,
@@ -428,11 +429,12 @@ const Game = (function () {
     if (mx || my) {
       const len = Math.hypot(mx, my);
       const sxDir = mx / len, syDir = my / len;
-      // 屏幕方向 → 世界方向（等距逆变换：wx = sy + sx/2, wy = sy - sx/2）
-      let wx = syDir + sxDir / 2;
-      let wy = syDir - sxDir / 2;
-      const wl = Math.hypot(wx, wy) || 1;
-      wx /= wl; wy /= wl;
+      // 屏幕方向 → 世界方向。
+      // 关键：等距投影把垂直方向压缩了 ISO_Y/ISO（一半），
+      // 如果只做逆变换再归一化，按「上/下」的屏幕速度只有「左/右」的一半。
+      // 这里直接解出「屏幕位移长度恒为 1」的世界方向，八个方向速度一致。
+      const wx = (sxDir / ISO + syDir / ISO_Y) / 2;
+      const wy = (syDir / ISO_Y - sxDir / ISO) / 2;
       p.x += wx * p.speed * dt;
       p.y += wy * p.speed * dt;
       p.anim += dt;
@@ -490,6 +492,13 @@ const Game = (function () {
           if (S.enemies.length >= capW) break;
           spawnEnemy(true);
         }
+      }
+
+      // 精英怪：每 22 秒一只（比普通强、比 BOSS 弱）
+      S.eliteTimer -= dt;
+      if (S.eliteTimer <= 0) {
+        S.eliteTimer = 22;
+        if (S.enemies.length < 150) spawnElite();
       }
 
       // BOSS
@@ -696,6 +705,25 @@ const Game = (function () {
         color: e.skin.eye || '#c8302a', pierce: 0, hit: []
       });
     }
+  }
+
+  /* ==================== 精英怪 ==================== */
+  function spawnElite() {
+    const p = S.player;
+    const kind = pick(S.zone.mobs);
+    const a = rnd(0, TAU);
+    const d = rnd(520, 680);
+    const e = makeEnemy(kind, p.x + Math.cos(a) * d, p.y + Math.sin(a) * d, 1);
+    if (!e) return;
+    e.elite = true;
+    e.maxHp = e.hp = e.hp * 3.2;
+    e.dmg *= 1.4;
+    e.size *= 1.28;
+    e.xp *= 5;
+    e.spd *= 0.92;
+    e.name = '精英 · ' + (MOBS[kind] ? MOBS[kind].name : '');
+    S.enemies.push(e);
+    addEffect('ring', e.x, e.y, 60, '#ffc93c', 0.5);
   }
 
   /* ==================== BOSS ==================== */
@@ -1029,7 +1057,7 @@ const Game = (function () {
         skin: id === 'creeper_pet' ? { body: '#5aa83a', dark: '#3f7a28', eye: '#0e140e' }
           : id === 'wolf' ? { head: '#c8c8c8', hair: '#e0e0e0', body: '#d8d8d8', arm: '#c8c8c8', leg: '#c8c8c8', eye: '#1a1a1a' }
             : { head: '#c8c8d8', hair: '#9a9ab0', body: '#a8a8c0', arm: '#c8c8d8', leg: '#8a8aa0', eye: '#c060e0' },
-        mvKind: id === 'creeper_pet' ? 'creeper' : 'humanoid',
+        mvKind: id === 'creeper_pet' ? 'creeper' : (id === 'wolf' ? 'wolf' : 'vex'),
         splash: st.splash
       });
       return true;
@@ -1067,7 +1095,11 @@ const Game = (function () {
           }
           addEffect('boom', m.x, m.y, r, '#e8a020', 0.4);
           burst(m.x, m.y, 14, ['#5aa83a', '#3f7a28']);
-          m.t = 0;
+          // 自爆后重生到玩家身边继续作战（不是直接消失，否则看起来像"召不出来"）
+          m.x = p.x + rnd(-34, 34);
+          m.y = p.y + rnd(-34, 34);
+          m.t = 10;
+          m.atkCd = 2.6;
         } else {
           hurtEnemy(tgt, m.dmg);
         }
@@ -1361,18 +1393,38 @@ const Game = (function () {
       g.globalAlpha = 1;
     }
 
-    // ---- 经验球 ----
+    // ---- 经验球（按经验值分档，颜色区分稀有度）----
     for (const o of S.orbs) {
       const sp = w2s(o.x, o.y);
-      const pulse = 1 + Math.sin(o.t * 8) * 0.15;
-      g.globalAlpha = 0.22;
-      g.fillStyle = '#8de05a';
-      g.beginPath(); g.arc(sp.x, sp.y - 5, o.r * 2.4 * pulse, 0, TAU); g.fill();
+      const tier = o.value >= 5 ? 2 : (o.value >= 3 ? 1 : 0);
+      const col = ['#5fd838', '#3aa8ff', '#c45cf0'][tier];
+      const hi = ['#c8ff9a', '#a8e0ff', '#f0c0ff'][tier];
+      const sz = [4, 5.5, 7][tier];
+      const pulse = 1 + Math.sin(o.t * 7 + o.x * 0.05) * 0.18;
+
+      // 外层光晕（比草地亮很多，不会糊在一起）
+      g.globalAlpha = 0.32;
+      g.fillStyle = col;
+      g.beginPath(); g.arc(sp.x, sp.y - 6, sz * 2.6 * pulse, 0, TAU); g.fill();
+      // 深色描边
+      g.globalAlpha = 0.9;
+      g.fillStyle = '#12240a';
+      g.fillRect(sp.x - sz - 1.5, sp.y - sz - 6 - 1.5, sz * 2 + 3, sz * 2 + 3);
+      // 主体
       g.globalAlpha = 1;
-      g.fillStyle = '#b8f070';
-      g.fillRect(sp.x - o.r, sp.y - o.r - 5, o.r * 2, o.r * 2);
-      g.fillStyle = '#e8ffc0';
-      g.fillRect(sp.x - o.r * 0.4, sp.y - o.r * 0.4 - 5, o.r * 0.8, o.r * 0.8);
+      g.fillStyle = col;
+      g.fillRect(sp.x - sz, sp.y - sz - 6, sz * 2, sz * 2);
+      // 高光
+      g.fillStyle = hi;
+      g.fillRect(sp.x - sz * 0.45, sp.y - sz * 0.45 - 6, sz * 0.9, sz * 0.9);
+      // 大经验球加个外圈，一眼看出值钱
+      if (tier > 0) {
+        g.globalAlpha = 0.75;
+        g.strokeStyle = hi;
+        g.lineWidth = 1.5;
+        g.beginPath(); g.arc(sp.x, sp.y - 6, sz * 1.7 * pulse, 0, TAU); g.stroke();
+        g.globalAlpha = 1;
+      }
     }
 
     // ---- 按深度排序（远 → 近）----
@@ -1534,6 +1586,23 @@ const Game = (function () {
     const baseH = KIND_H[e.kind] || 32;
     const unit = (e.size / baseH) * 1.15;
 
+    // 精英怪：脚下金色光环 + 呼吸光，一眼能认出来
+    if (e.elite) {
+      const pu = 0.55 + Math.sin(S.time * 5) * 0.18;
+      g.globalAlpha = 0.28 * pu;
+      g.fillStyle = '#ffc93c';
+      g.beginPath();
+      g.ellipse(sp.x, sp.y, e.size * 0.62, e.size * 0.31, 0, 0, TAU);
+      g.fill();
+      g.globalAlpha = 0.85;
+      g.strokeStyle = '#ffe9a0';
+      g.lineWidth = 2.5;
+      g.beginPath();
+      g.ellipse(sp.x, sp.y, e.size * 0.62, e.size * 0.31, 0, 0, TAU);
+      g.stroke();
+      g.globalAlpha = 1;
+    }
+
     g.save();
     if (e.hitFlash > 0) g.globalAlpha = 0.85;
     drawMobFigure(g, sp.x, sp.y, unit, e.skin, e.kind, {
@@ -1556,9 +1625,20 @@ const Game = (function () {
     if (!e.isBoss && e.hp < e.maxHp) {
       const bw = e.size * 0.8;
       g.fillStyle = 'rgba(0,0,0,.72)';
-      g.fillRect(sp.x - bw / 2, sp.y - e.size - 10, bw, 4);
-      g.fillStyle = '#e0453c';
-      g.fillRect(sp.x - bw / 2, sp.y - e.size - 10, bw * (e.hp / e.maxHp), 4);
+      g.fillRect(sp.x - bw / 2, sp.y - e.size - 10, bw, e.elite ? 5 : 4);
+      g.fillStyle = e.elite ? '#ffc93c' : '#e0453c';
+      g.fillRect(sp.x - bw / 2, sp.y - e.size - 10, bw * (e.hp / e.maxHp), e.elite ? 5 : 4);
+    }
+    if (e.elite) {
+      g.save();
+      g.font = '700 10px "Courier New", monospace';
+      g.textAlign = 'center';
+      g.lineWidth = 3;
+      g.strokeStyle = 'rgba(0,0,0,.85)';
+      g.strokeText(e.name, sp.x, sp.y - e.size - 16);
+      g.fillStyle = '#ffd85c';
+      g.fillText(e.name, sp.x, sp.y - e.size - 16);
+      g.restore();
     }
     if (e.isBoss) {
       g.save();
@@ -1614,7 +1694,7 @@ const Game = (function () {
     });
   }
 
-  const KIND_H = { humanoid: 32, creeper: 22, spider: 14, slime: 18, blaze: 24, dragon: 35, warden: 36 };
+  const KIND_H = { humanoid: 32, creeper: 22, spider: 14, slime: 18, blaze: 24, dragon: 35, warden: 36, wolf: 24, vex: 21 };
 
   /* ---------- 地面装饰 ---------- */
   function drawDecor(g) {
