@@ -8,7 +8,7 @@ const SB = (function () {
 
   const CONFIG = {
     url: 'https://vlbdguleovswmchypadd.supabase.co',
-    anonKey: ''    // 项目设置 → API → anon public
+    anonKey: 'sb_publishable_OEL6dIn9SIE1efzGPP99qA_qGD2nE_9'
   };
 
   const AUTH_KEY = 'mc_survivors_session_v1';
