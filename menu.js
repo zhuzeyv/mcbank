@@ -322,6 +322,35 @@ function drawMobFigure(g, cx, footY, unit, skin, kind, opt) {
     R(-2.5, -23, 5, 5, skin.eye);
     g.globalAlpha = 1;
 
+  } else if (kind === 'wolf') {
+    // 四足狼：和骷髅完全不同的剪影
+    shadow(9, 2);
+    RB(-7, -7, 3, 7, skin.dark);
+    RB(-2.5, -7, 3, 7, skin.dark);
+    RB(2.5, -7, 3, 7, skin.dark);
+    RB(7, -7, 3, 7, skin.dark);
+    RB(-8, -14, 15.5, 7.5, skin.body);
+    RB(5, -17, 6, 5, skin.body);
+    RB(7, -21, 8, 7, skin.head);
+    R(7.5, -23.6, 2.2, 3, skin.hair);
+    R(11.6, -23.6, 2.2, 3, skin.hair);
+    R(11.4, -18.4, 1.7, 1.7, skin.eye);
+    R(13.6, -18.4, 1.7, 1.7, skin.eye);
+    R(14.6, -16.8, 1.8, 1.3, '#2a2a2a');
+    RB(-10, -16, 3, 7, skin.dark);
+
+  } else if (kind === 'vex') {
+    // 恼鬼：小个子 + 一对翅膀，飘着
+    shadow(6, 1.5);
+    RB(-10, -19, 6.5, 5, skin.dark);
+    RB(4, -19, 6.5, 5, skin.dark);
+    RB(-3.5, -15, 7, 9, skin.body);
+    RB(-3, -21, 6, 6.5, skin.head);
+    R(-1.8, -19, 1.5, 1.5, skin.eye);
+    R(0.9, -19, 1.5, 1.5, skin.eye);
+    RB(-6.2, -14, 2.6, 5, skin.body);
+    RB(3.8, -14, 2.6, 5, skin.body);
+
   } else {
     drawMCFigure(g, 0, 0, unit, skin, opt);
   }
