@@ -581,6 +581,7 @@ function sellItem(id) {
   }
   renderArmory();
   refreshGold();
+  if (typeof SFX !== 'undefined') SFX.buy();
   toast('卖出 ' + EQUIP.SLOT_NAME[it.slot] + ' +' + price + ' 金币');
   return true;
 }
@@ -725,6 +726,7 @@ function buyItem(idx) {
   }
   renderShop();
   refreshGold();
+  if (typeof SFX !== 'undefined') SFX.buy();
   toast('买到了 ' + EQUIP.SLOT_NAME[g.item.slot] + '（已放进军械库）');
 }
 
@@ -1337,6 +1339,37 @@ function initMenu() {
   document.getElementById('btnTalent').onclick = () => {
     document.querySelector('.tab[data-page="talent"]').click();
   };
+
+  // 音效：首次交互时初始化 AudioContext（浏览器策略要求）
+  document.addEventListener('pointerdown', function () {
+    if (typeof SFX !== 'undefined') SFX.init();
+  }, { once: true });
+
+  // 音效开关
+  (function () {
+    const btn = document.getElementById('btnSfx');
+    if (!btn) return;
+    const sync = () => {
+      const on = (typeof SFX === 'undefined') ? false : SFX.isOn();
+      btn.textContent = on ? '🔊' : '🔇';
+      btn.classList.toggle('off', !on);
+    };
+    sync();
+    btn.onclick = function (ev) {
+      ev.stopPropagation();
+      if (typeof SFX === 'undefined') return;
+      SFX.toggle();
+      sync();
+    };
+  })();
+
+  // 全局按钮点击音
+  document.addEventListener('click', function (ev) {
+    const t = ev.target;
+    if (t && t.closest && t.closest('button') && typeof SFX !== 'undefined' && SFX.isOn()) {
+      if (t.id !== 'btnSfx') SFX.click();
+    }
+  });
 
   // 账号栏与弹窗
   refreshAccountBar();
