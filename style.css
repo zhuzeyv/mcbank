@@ -987,3 +987,40 @@ body.is-touch .hud-right{margin-right:48px;}
   .rank-season{font-size:15px;}
   .rr-tiers{grid-template-columns:repeat(2,1fr);}
 }
+
+/* ==================== 宝箱奖励 ==================== */
+.chest-head{
+  font-size:26px;font-weight:900;letter-spacing:.14em;color:var(--yellow);
+  text-shadow:
+    3px 0 0 var(--ink), -3px 0 0 var(--ink), 0 3px 0 var(--ink), 0 -3px 0 var(--ink),
+    0 6px 0 rgba(0,0,0,.5);
+  margin-bottom:18px;
+}
+.chest-body{display:flex;justify-content:center;}
+.chest-item{
+  width:260px;padding:14px;
+  background:var(--paper);
+  border:var(--bd) solid var(--ink);border-radius:4px;
+  box-shadow:0 6px 0 var(--ink2), 0 12px 32px rgba(0,0,0,.5);
+  text-align:center;
+}
+.ci-name{font-size:16px;font-weight:900;letter-spacing:.06em;margin-bottom:9px;}
+.ci-affixes{display:flex;flex-direction:column;gap:4px;}
+.ci-affixes div{
+  font-size:12px;font-weight:700;color:var(--ink);
+  background:var(--paper2);border:2px solid var(--ink);border-radius:2px;
+  padding:3px 8px;
+}
+.chest-tip{margin-top:20px;font-size:11px;color:#a4b894;font-weight:700;letter-spacing:.1em;}
+
+/* ==================== 装备槽（菜单） ==================== */
+.equip-slot{position:relative;cursor:default;}
+.equip-slot .es-ic{width:100%;height:100%;display:flex;align-items:center;justify-content:center;}
+.equip-slot .es-ic svg{width:72%;height:72%;}
+.equip-slot.filled{border-width:3px;}
+.equip-slot.filled::after{display:none;}
+.equip-slot .es-q{
+  position:absolute;left:0;right:0;bottom:0;
+  font-size:8px;font-weight:900;text-align:center;color:#fff;
+  line-height:1.4;
+}
