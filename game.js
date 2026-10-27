@@ -121,6 +121,23 @@ const Game = (function () {
     p.armor = Math.min(0.75, p.armor + (eb.armor || 0));
     p.pickup *= (1 + (eb.pickup || 0));
 
+    // ---- 称号加成（自动穿戴已通关称号里评分最高的）----
+    try {
+      if (typeof bestTitle === 'function') {
+        const tt = bestTitle();
+        const st = tt && tt.stat;
+        if (st) {
+          if (st.hp) p.maxHp += st.hp;
+          if (st.dmg) p.dmgMul *= (1 + st.dmg);
+          if (st.speed) p.speed *= (1 + st.speed);
+          if (st.haste) p.atkSpeedMul *= (1 + st.haste);
+          if (st.crit) p.critChance += st.crit;
+          if (st.armor) p.armor = Math.min(0.75, p.armor + st.armor);
+          if (st.pickup) p.pickup *= (1 + st.pickup);
+        }
+      }
+    } catch (e) {}
+
     p.hp = p.maxHp;
 
     // 初始武器
