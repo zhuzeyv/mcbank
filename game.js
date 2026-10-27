@@ -104,7 +104,7 @@ const Game = (function () {
       weapons: [],
       invuln: 0
     };
-    p.maxHp = cls.hp + (race.bonus.hp || 0);
+    p.maxHp = Math.round((cls.hp + (race.bonus.hp || 0)) * 1.25);
     p.hp = p.maxHp;
 
     // 初始武器
@@ -127,6 +127,7 @@ const Game = (function () {
       waveCount: 0,
       boss: null,
       bossSpawned: false,
+      bossGrace: 0,
       shake: 0,
       hurtFlash: 0,
       theme: zone.theme,
@@ -147,8 +148,8 @@ const Game = (function () {
     const w = WEAPONS[id];
     const k = lv - 1;
     return {
-      dmg: w.dmg * (1 + 0.38 * k),
-      cd: w.cd * Math.pow(0.935, k),
+      dmg: w.dmg * (1 + 0.26 * k),
+      cd: w.cd * Math.pow(0.96, k),
       range: (w.range || 60) * (1 + 0.055 * k),
       count: (w.count || 1) + Math.floor(k / 3),
       pierce: (w.pierce || 0) + Math.floor(k / 2),
@@ -461,20 +462,33 @@ const Game = (function () {
 
     // ---- 生成敌人 ----
     if (!S.over) {
+      if (S.bossGrace > 0) S.bossGrace -= dt;
       S.spawnTimer -= dt;
-      if (S.spawnTimer <= 0) {
-        const rate = Math.max(0.16, (0.92 - Math.min(0.66, S.time * 0.0042)) / S.diff.spawn);
-        S.spawnTimer = rate;
-        if (S.enemies.length < 110) spawnEnemy();
+      if (S.spawnTimer <= 0 && S.bossGrace <= 0) {
+        // 等级越高刷得越快（等级是玩家变强的直接体现，怪必须跟上）
+        const lvFactor = 1 + S.level * 0.024;
+        const rate = Math.max(0.12,
+          (1.12 - Math.min(0.62, S.time * 0.0042)) / (S.diff.spawn * lvFactor));
+        const bossSlow = (S.boss && !S.boss.dead) ? 1.8 : 1;
+        S.spawnTimer = rate * bossSlow;
+        const cap = Math.min(190, 100 + S.level * 5);
+        if (S.enemies.length < cap) {
+          spawnEnemy();
+          if (S.level >= 8 && Math.random() < 0.25) spawnEnemy();   // 高等级偶尔成群
+        }
       }
 
-      // 每 25 秒一波冲击
+      // 每 18 秒一波冲击
       S.waveTimer += dt;
-      if (S.waveTimer >= 25) {
+      if (S.waveTimer >= 20) {
         S.waveTimer = 0;
         S.waveCount++;
-        const n = 5 + S.waveCount * 2;
-        for (let i = 0; i < n; i++) spawnEnemy(true);
+        const n = 5 + Math.round(S.waveCount * 1.5) + Math.floor(S.level * 0.45);
+        const capW = Math.min(190, 100 + S.level * 5);
+        for (let i = 0; i < n; i++) {
+          if (S.enemies.length >= capW) break;
+          spawnEnemy(true);
+        }
       }
 
       // BOSS
@@ -687,7 +701,7 @@ const Game = (function () {
       skin: bd.skin,
       isBoss: true,
       name: bd.name,
-      hp: 90 * bd.hpMul * (1 + S.zoneIdx * 0.35) * S.diff.hp,
+      hp: 46 * bd.hpMul * (1 + S.zoneIdx * 0.35) * S.diff.hp,
       maxHp: 0,
       spd: bd.spd,
       dmg: bd.dmg * S.diff.dmg,
@@ -703,6 +717,19 @@ const Game = (function () {
     S.boss = e;
     S.shake = 14;
     addEffect('bossRing', e.x, e.y, 160, '#e8a020', 0.9);
+
+    // 登场清场：干掉玩家 420 半径内的小怪，并给 3 秒喘息
+    for (let i = S.enemies.length - 1; i >= 0; i--) {
+      const m = S.enemies[i];
+      if (m.isBoss || m.dead) continue;
+      if (dist2(m.x, m.y, p.x, p.y) < 420 * 420) {
+        m.dead = true;
+        burst(m.x, m.y, 6, [m.skin.body || '#888', '#ffffff']);
+      }
+    }
+    S.bossGrace = 3.0;
+    p.hp = Math.min(p.maxHp, p.hp + p.maxHp * 0.18);
+    addText(p.x, p.y - 50, '+回血', '#8de05a', 15);
     document.getElementById('bossBar').classList.remove('hidden');
     document.getElementById('bossName').textContent = bd.name;
   }
@@ -790,7 +817,7 @@ const Game = (function () {
     const base = MOBS[kind];
     if (!base) return null;
     scale = scale || 1;
-    const tScale = 1 + S.time / 150;
+    const tScale = 1 + S.time / 165;
     const hp = base.hp * S.zone.hpMul * S.diff.hp * tScale * scale;
     return {
       x, y,
@@ -837,7 +864,7 @@ const Game = (function () {
     }
     const dmg = Math.max(1, raw * (1 - p.armor) * (S.race.bonus.dmgTaken || 1));
     p.hp -= dmg;
-    p.invuln = 0.32;
+    p.invuln = 0.5;
     S.hurtFlash = 1;
     S.shake = Math.max(S.shake, 5);
     addText(p.x, p.y - 44, '-' + Math.round(dmg), '#e85040', 15);
@@ -855,7 +882,7 @@ const Game = (function () {
     while (S.xp >= S.xpNext) {
       S.xp -= S.xpNext;
       S.level++;
-      S.xpNext = Math.floor(6 * Math.pow(1.26, S.level - 1));
+      S.xpNext = Math.floor(7 * Math.pow(1.29, S.level - 1));
       S.pendingLevels++;
       // 人类种族：每 5 级 +1 最大生命
       if (S.race.id === 'human' && S.level % 5 === 0) {
@@ -1249,12 +1276,12 @@ const Game = (function () {
   function applyPassive(id) {
     const p = S.player;
     if (id === 'heart') { p.maxHp += 22; p.hp += 22; }
-    else if (id === 'speed') p.speed *= 1.09;
-    else if (id === 'power') p.dmgMul *= 1.12;
-    else if (id === 'haste') p.atkSpeedMul *= 1.10;
+    else if (id === 'speed') p.speed *= 1.08;
+    else if (id === 'power') p.dmgMul *= 1.09;
+    else if (id === 'haste') p.atkSpeedMul *= 1.08;
     else if (id === 'magnet') p.pickup *= 1.30;
-    else if (id === 'crit') { p.critChance += 0.06; p.critMul += 0.15; }
-    else if (id === 'armor') p.armor = Math.min(0.75, p.armor + 0.07);
+    else if (id === 'crit') { p.critChance += 0.05; p.critMul += 0.12; }
+    else if (id === 'armor') p.armor = Math.min(0.7, p.armor + 0.06);
     else if (id === 'lucky') p.xpMul *= 1.12;
   }
 
@@ -1743,7 +1770,7 @@ const Game = (function () {
     S.over = true;
     S.running = false;
     // 解锁下一区域
-    S.unlockedName = (typeof unlockNextZone === 'function') ? unlockNextZone(S.zone.id) : null;
+    S.unlockedName = (typeof unlockNextZone === 'function') ? unlockNextZone(S.zone.id, S.cfg.diff) : null;
     setTimeout(() => showResult(true), 700);
   }
 
@@ -1757,6 +1784,10 @@ const Game = (function () {
 
   function showResult(isWin) {
     document.getElementById('bossBar').classList.add('hidden');
+    // 记录本局统计（成就/收藏用）
+    if (typeof recordRun === 'function') {
+      recordRun({ kills: S.kills, level: S.level });
+    }
     const t = Math.floor(S.time);
     document.getElementById('resTitle').textContent = isWin ? '首 领 已 陨 落' : '你 倒 下 了';
     document.getElementById('resTitle').className = 'res-title' + (isWin ? '' : ' dead');
