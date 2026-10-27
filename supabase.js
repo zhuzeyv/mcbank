@@ -42,9 +42,32 @@ const SB = (function () {
   }
 
   /* ---------- 基础请求 ---------- */
+  // 用 refresh_token 换新的 access_token（Supabase 默认 1 小时过期）
+  async function refreshToken() {
+    if (!session || !session.refresh_token) return false;
+    try {
+      const res = await fetch(CONFIG.url + '/auth/v1/token?grant_type=refresh_token', {
+        method: 'POST',
+        headers: { 'apikey': CONFIG.anonKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: session.refresh_token })
+      });
+      if (!res.ok) return false;
+      const data = await res.json();
+      if (!data || !data.access_token) return false;
+      saveSession({
+        access_token: data.access_token,
+        refresh_token: data.refresh_token || session.refresh_token,
+        user: session.user
+      });
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   function ready() { return !!(CONFIG.url && CONFIG.anonKey); }
 
-  async function api(path, opts) {
+  async function api(path, opts, _retried) {
     opts = opts || {};
     const headers = Object.assign({
       'apikey': CONFIG.anonKey,
@@ -84,6 +107,13 @@ const SB = (function () {
 
     if (!res.ok) {
       let msg = (data && (data.msg || data.error_description || data.message || data.hint)) || ('HTTP ' + res.status);
+
+      // 登录态过期：自动刷新 token 后重试一次（避免用户莫名其妙被踢）
+      if (res.status === 401 && !_retried && /jwt expired|token.*expired|invalid.*jwt/i.test(msg)) {
+        if (await refreshToken()) return api(path, opts, true);
+        saveSession(null);
+        throw new Error('登录已过期，请重新登录');
+      }
       // 常见错误翻译成人话
       if (/invalid format/i.test(msg)) msg = '名称格式不被接受，请换一个名字试试';
       if (/already registered|already exists/i.test(msg)) msg = '这个名称已被注册，换一个或直接登录';
