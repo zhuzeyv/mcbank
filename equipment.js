@@ -45,9 +45,11 @@ const EQUIP = (function () {
   }
 
   // level：怪物强度，越高越容易出好货
-  function make(level) {
+  function make(level, minQuality) {
     const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)];
-    const q = rollQuality((level || 0) * 0.6);
+    let q = rollQuality((level || 0) * 0.6);
+    // 品质保底（商城用：保证不会出垃圾）
+    if (typeof minQuality === 'number' && q.id < minQuality) q = QUALITY[minQuality];
     const pool = STATS.slice();
     const affixes = [];
     for (let i = 0; i < q.affix && pool.length; i++) {
