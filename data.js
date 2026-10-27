@@ -338,6 +338,54 @@ const ICON_SRC = {
     ],
     c: { W: '#a8b8c8', E: '#3a4a5a' }
   },
+  helmetIco: {
+    rows: [
+      '...HHHHH...',
+      '..HHHHHHH..',
+      '.HHHHHHHHH.',
+      '.HHHHHHHHH.',
+      '.HH.DDD.HH.',
+      '.HH.DDD.HH.',
+      '.HH.....HH.',
+      '.HHHHHHHHH.',
+      '..HHHHHHH..',
+      '...........',
+      '...........'
+    ],
+    c: { H: '#a8b8c8', D: '#3a4a5a' }
+  },
+  chestIco: {
+    rows: [
+      '...........',
+      '.HH.....HH.',
+      'HHHHHHHHHHH',
+      'HHHHHHHHHHH',
+      'HHHDDDDDDHH',
+      'HHHHHHHHHHH',
+      '.HHHHHHHHH.',
+      '.HHHHHHHHH.',
+      '..HHHHHHH..',
+      '...........',
+      '...........'
+    ],
+    c: { H: '#a8b8c8', D: '#5a6a7a' }
+  },
+  legsIco: {
+    rows: [
+      '..HHHHHHH..',
+      '..HHHHHHH..',
+      '..HHH.HHH..',
+      '..HHH.HHH..',
+      '..HHH.HHH..',
+      '..HHH.HHH..',
+      '..HHH.HHH..',
+      '..HHH.HHH..',
+      '..HHH.HHH..',
+      '...........',
+      '...........'
+    ],
+    c: { H: '#a8b8c8' }
+  },
   spiderIco: {
     rows: [
       'B.......B..',
