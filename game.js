@@ -105,6 +105,22 @@ const Game = (function () {
       invuln: 0
     };
     p.maxHp = Math.round((cls.hp + (race.bonus.hp || 0)) * 1.25);
+
+    // ---- 装备加成 ----
+    let eb = { hp: 0, dmg: 0, speed: 0, haste: 0, crit: 0, armor: 0, pickup: 0 };
+    try {
+      if (typeof EQUIP !== 'undefined' && typeof loadProgress === 'function') {
+        eb = EQUIP.totalBonus(loadProgress().equipment);
+      }
+    } catch (e) {}
+    p.maxHp += Math.round(eb.hp || 0);
+    p.dmgMul *= (1 + (eb.dmg || 0));
+    p.speed *= (1 + (eb.speed || 0));
+    p.atkSpeedMul *= (1 + (eb.haste || 0));
+    p.critChance += (eb.crit || 0);
+    p.armor = Math.min(0.75, p.armor + (eb.armor || 0));
+    p.pickup *= (1 + (eb.pickup || 0));
+
     p.hp = p.maxHp;
 
     // 初始武器
@@ -116,7 +132,7 @@ const Game = (function () {
       time: 0,
       player: p,
       enemies: [], projectiles: [], orbs: [], particles: [], texts: [],
-      effects: [], minions: [], hazards: [],
+      effects: [], minions: [], hazards: [], chests: [],
       cam: { x: 0, y: 0 },
       keys: {},
       kills: 0,
@@ -208,8 +224,17 @@ const Game = (function () {
     if (e.isBoss) {
       S.shake = 22;
       S.boss = null;
+      // BOSS 必掉两个宝箱
+      for (let i = 0; i < 2; i++) {
+        S.chests.push({ x: e.x + rnd(-40, 40), y: e.y + rnd(-40, 40), t: 0 });
+      }
       win();
       return;
+    }
+
+    // 精英怪 30% 掉宝箱
+    if (e.elite && Math.random() < 0.3) {
+      S.chests.push({ x: e.x, y: e.y, t: 0 });
     }
 
     // 史莱姆分裂
@@ -540,6 +565,17 @@ const Game = (function () {
       }
     }
 
+    // ---- 宝箱 ----
+    for (let i = S.chests.length - 1; i >= 0; i--) {
+      const c = S.chests[i];
+      c.t += dt;
+      if (dist2(p.x, p.y, c.x, c.y) < 52 * 52) {
+        S.chests.splice(i, 1);
+        openChest(c);
+        break;
+      }
+    }
+
     // ---- 随从 ----
     for (let i = S.minions.length - 1; i >= 0; i--) {
       const m = S.minions[i];
@@ -705,6 +741,67 @@ const Game = (function () {
         color: e.skin.eye || '#c8302a', pierce: 0, hit: []
       });
     }
+  }
+
+  /* ==================== 宝箱 ==================== */
+  function openChest(c) {
+    const p = S.player;
+    addEffect('ring', c.x, c.y, 70, '#ffd85c', 0.5);
+    burst(c.x, c.y, 16, ['#ffd85c', '#ffe9a0', '#ffffff']);
+
+    // 45% 白嫖一次升级，55% 出装备
+    if (Math.random() < 0.45) {
+      S.pendingLevels++;
+      addText(p.x, p.y - 60, '免费升级!', '#ffd85c', 17);
+      return;
+    }
+
+    const it = EQUIP.make(S.level * 0.6 + S.zoneIdx * 2.5);
+    const better = grantEquipment(it);
+    showChestItem(it, better);
+  }
+
+  function grantEquipment(it) {
+    try {
+      if (typeof loadProgress !== 'function' || typeof saveProgress !== 'function') return false;
+      const prog = loadProgress();
+      prog.equipment = prog.equipment || {};
+      const cur = prog.equipment[it.slot];
+      const better = !cur || EQUIP.score(it) > EQUIP.score(cur);
+      if (better) {
+        prog.equipment[it.slot] = it;
+        saveProgress(prog);
+        if (typeof SB !== 'undefined' && SB.currentUser && SB.currentUser()) {
+          SB.saveCloudProgress(prog.cleared, prog.clearedHard, prog.stats, prog.equipment)
+            .catch(function () {});
+        }
+      }
+      return better;
+    } catch (e) { return false; }
+  }
+
+  function showChestItem(it, isNew) {
+    const panel = document.getElementById('chestPanel');
+    const body = document.getElementById('chestBody');
+    if (!panel || !body) return;
+    const q = EQUIP.qualityOf(it.quality);
+    body.innerHTML =
+      '<div class="chest-item" style="border-color:' + q.color + ';box-shadow:0 6px 0 ' + q.dark + ', 0 12px 32px rgba(0,0,0,.5)">' +
+        '<div class="ci-name" style="color:' + q.color + '">' + q.name + ' · ' + EQUIP.SLOT_NAME[it.slot] + '</div>' +
+        '<div class="ci-affixes">' +
+          it.affixes.map(function (a) { return '<div>' + EQUIP.desc(a) + '</div>'; }).join('') +
+        '</div>' +
+        '<div style="margin-top:9px;font-size:10.5px;font-weight:700;color:' + (isNew ? '#237a35' : '#8a3030') + '">' +
+          (isNew ? '已装备（优于当前）' : '未装备（不如当前这件）') +
+        '</div>' +
+      '</div>';
+    panel.classList.remove('hidden');
+    S.paused = true;
+    panel.onclick = function () {
+      panel.classList.add('hidden');
+      S.paused = false;
+      panel.onclick = null;
+    };
   }
 
   /* ==================== 精英怪 ==================== */
@@ -1425,6 +1522,30 @@ const Game = (function () {
         g.beginPath(); g.arc(sp.x, sp.y - 6, sz * 1.7 * pulse, 0, TAU); g.stroke();
         g.globalAlpha = 1;
       }
+    }
+
+    // ---- 宝箱 ----
+    for (const c of S.chests) {
+      const sp = w2s(c.x, c.y);
+      const bob = Math.sin(S.time * 3 + c.x * 0.05) * 2;
+      // 光柱
+      g.globalAlpha = 0.18 + Math.sin(S.time * 4) * 0.06;
+      g.fillStyle = '#ffd85c';
+      g.beginPath();
+      g.moveTo(sp.x - 16, sp.y);
+      g.lineTo(sp.x - 7, sp.y - 76);
+      g.lineTo(sp.x + 7, sp.y - 76);
+      g.lineTo(sp.x + 16, sp.y);
+      g.closePath();
+      g.fill();
+      g.globalAlpha = 1;
+      // 箱子
+      drawIsoBlock(g, sp.x, sp.y - 16 + bob, 36, 15, '#e8b028', '#9a6a10', '#c08a18');
+      // 锁扣
+      g.fillStyle = '#ffe9a0';
+      g.fillRect(sp.x - 4, sp.y - 27 + bob, 8, 7);
+      g.fillStyle = '#8a5a10';
+      g.fillRect(sp.x - 1.5, sp.y - 24 + bob, 3, 4);
     }
 
     // ---- 按深度排序（远 → 近）----
