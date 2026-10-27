@@ -72,7 +72,7 @@ input{font-family:inherit;}
   display:flex;flex-direction:column;
 }
 
-.hero{text-align:center;margin-bottom:14px;flex-shrink:0;}
+.hero{position:relative;text-align:center;margin-bottom:14px;flex-shrink:0;}
 .hero h1{
   font-size:40px;font-weight:900;letter-spacing:.1em;text-indent:.1em;
   color:var(--yellow);
@@ -824,4 +824,166 @@ body.is-touch .hud-right{margin-right:48px;}
   .hud-right{margin-right:46px;}
   .hp-wrap{width:180px;}
   .boss-bar{top:44px;}
+}
+
+/* ==================== 账号栏 ==================== */
+.account-bar{
+  position:absolute;top:-6px;right:0;
+  display:flex;align-items:center;gap:9px;
+  padding:5px 9px 5px 5px;
+  background:var(--paper);
+  border:var(--bd2) solid var(--ink);border-radius:4px;
+  box-shadow:0 4px 0 var(--ink2);
+  z-index:5;
+}
+.acc-avatar{
+  width:36px;height:36px;border-radius:3px;flex-shrink:0;
+  background:var(--purple);border:2px solid var(--ink);
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-weight:900;font-size:16px;
+}
+.acc-info{line-height:1.3;text-align:left;}
+.acc-name{font-size:13px;font-weight:900;color:var(--ink);white-space:nowrap;}
+.acc-sub{font-size:9.5px;color:var(--text-dim);font-weight:700;white-space:nowrap;}
+.acc-btn{
+  padding:5px 11px;font-size:12px;font-weight:900;white-space:nowrap;
+  background:var(--green);color:#fff;
+  border:var(--bd2) solid var(--ink);border-radius:3px;
+  box-shadow:0 3px 0 var(--green-d);
+  text-shadow:0 2px 0 var(--green-d);
+  transition:transform .08s, box-shadow .08s;
+}
+.acc-btn:active{transform:translateY(3px);box-shadow:none;}
+
+/* ==================== 赛季排行榜 ==================== */
+.rank-wrap{
+  flex:1;min-height:0;display:flex;flex-direction:column;gap:9px;overflow:hidden;
+}
+.rank-head{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:8px 14px;flex-shrink:0;
+  background:var(--yellow);
+  border:var(--bd2) solid var(--ink);border-radius:4px;
+  box-shadow:0 4px 0 var(--yellow-d);
+}
+.rank-season{font-size:17px;font-weight:900;color:var(--ink);letter-spacing:.04em;}
+.rank-cd{font-size:11.5px;font-weight:700;color:#7a5a10;font-family:"Courier New",monospace;}
+
+.rank-toolbar{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.rank-mode{
+  padding:3px 12px;font-size:12px;font-weight:900;
+  background:var(--blue);color:#fff;
+  border:2px solid var(--ink);border-radius:3px;
+}
+.rank-hint{font-size:10.5px;color:var(--text-dim);font-weight:700;}
+
+.rank-list{
+  flex:1;min-height:0;overflow-y:auto;
+  display:flex;flex-direction:column;gap:5px;padding-right:3px;
+}
+.rank-list::-webkit-scrollbar{width:7px;}
+.rank-list::-webkit-scrollbar-thumb{background:var(--ink2);}
+.rank-row{
+  display:flex;align-items:center;gap:9px;
+  padding:6px 10px;flex-shrink:0;
+  background:var(--white);
+  border:var(--bd2) solid var(--ink);border-radius:3px;
+  box-shadow:0 2px 0 var(--ink2);
+}
+.rank-row.r1{background:#fff6d8;border-color:#c8a020;box-shadow:0 2px 0 #c8a020;}
+.rank-row.r2{background:#f2f2f6;border-color:#9a9aac;box-shadow:0 2px 0 #9a9aac;}
+.rank-row.r3{background:#f8ecdc;border-color:#b08050;box-shadow:0 2px 0 #b08050;}
+.rank-row.me{outline:3px solid var(--green);outline-offset:-3px;}
+.rk-no{
+  width:28px;text-align:center;font-size:14px;font-weight:900;
+  color:var(--ink);font-family:"Courier New",monospace;flex-shrink:0;
+}
+.rk-av{
+  width:30px;height:30px;border-radius:3px;flex-shrink:0;
+  background:var(--purple);border:2px solid var(--ink);
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-weight:900;font-size:13px;
+}
+.rk-main{flex:1;min-width:0;}
+.rk-name{font-size:13px;font-weight:900;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rk-meta{font-size:10px;color:var(--text-dim);font-weight:700;}
+.rk-score{font-size:15px;font-weight:900;color:var(--ink);font-family:"Courier New",monospace;flex-shrink:0;}
+.rank-loading{text-align:center;padding:34px 10px;color:var(--text-dim);font-weight:700;font-size:12px;}
+
+.rank-reward{
+  flex-shrink:0;padding:8px 10px;
+  background:var(--white);
+  border:var(--bd2) solid var(--ink);border-radius:3px;
+  box-shadow:0 3px 0 var(--ink2);
+}
+.rr-title{font-size:12px;font-weight:900;color:var(--ink);margin-bottom:6px;}
+.rr-tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;}
+.rr-tier{
+  padding:4px 6px;border-radius:2px;
+  border:2px solid var(--ink);background:var(--paper2);
+  font-size:9.5px;line-height:1.35;
+}
+.rr-tier b{display:block;font-size:10.5px;color:var(--ink);}
+.rr-tier span{color:var(--text-dim);font-weight:700;}
+.rr-tier.t1{background:#ffe9a8;}
+.rr-tier.t2{background:#e6e6f0;}
+.rr-tier.t3{background:#f0dcc0;}
+
+/* ==================== 账号弹窗 ==================== */
+.modal{
+  position:fixed;inset:0;z-index:200;
+  background:rgba(8,10,6,.78);
+  display:flex;align-items:center;justify-content:center;
+  backdrop-filter:blur(3px);padding:16px;
+}
+.modal.hidden{display:none;}
+.modal-box{
+  width:min(430px,94vw);
+  background:var(--paper);
+  border:var(--bd) solid var(--ink);border-radius:5px;
+  box-shadow:0 8px 0 var(--ink2), 0 18px 44px rgba(0,0,0,.6);
+  overflow:hidden;
+}
+.modal-head{
+  padding:9px 14px;background:var(--red);
+  border-bottom:var(--bd) solid var(--ink);
+}
+.modal-head span{
+  font-size:15px;font-weight:900;color:#fff;letter-spacing:.1em;
+  text-shadow:0 2px 0 var(--red-d);
+}
+.modal-body{padding:13px 14px 0;}
+.modal-tip{font-size:12px;color:var(--text-dim);font-weight:700;margin-bottom:10px;}
+.modal-input{
+  width:100%;margin-bottom:8px;padding:9px 11px;
+  background:var(--white);
+  border:var(--bd2) solid var(--ink);border-radius:3px;
+  font-size:13px;font-weight:700;color:var(--ink);outline:none;
+  box-shadow:0 2px 0 var(--ink2);
+}
+.modal-input:focus{box-shadow:0 2px 0 var(--blue-d), 0 0 0 2px var(--blue) inset;}
+.modal-note{font-size:10.5px;color:var(--text-mute);font-weight:700;line-height:1.5;}
+.modal-err{font-size:11.5px;color:var(--red);font-weight:900;min-height:17px;margin-top:5px;}
+.modal-foot{display:flex;gap:9px;padding:0 14px 11px;}
+.modal-btn{
+  flex:1;padding:9px;font-size:13px;font-weight:900;letter-spacing:.08em;
+  border:var(--bd) solid var(--ink);border-radius:4px;
+  transition:transform .08s, box-shadow .08s;
+}
+.modal-btn.ghost{background:var(--paper2);color:var(--ink);box-shadow:0 4px 0 var(--ink2);}
+.modal-btn.primary{background:var(--green);color:#fff;box-shadow:0 4px 0 var(--green-d);text-shadow:0 2px 0 var(--green-d);}
+.modal-btn:active{transform:translateY(4px);box-shadow:none;}
+.modal-btn:disabled{opacity:.6;}
+.modal-switch{
+  text-align:center;padding:0 0 13px;
+  font-size:11.5px;color:var(--text-dim);font-weight:700;
+}
+.modal-switch button{color:var(--blue);font-weight:900;text-decoration:underline;margin-left:4px;}
+
+/* 移动端：账号栏改为常规流 */
+@media (max-width:900px){
+  .account-bar{position:static;margin:0 auto 9px;width:fit-content;}
+  .rank-head{flex-direction:column;align-items:flex-start;gap:2px;padding:7px 11px;}
+  .rank-season{font-size:15px;}
+  .rr-tiers{grid-template-columns:repeat(2,1fr);}
 }
