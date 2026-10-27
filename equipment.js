@@ -12,7 +12,7 @@ const EQUIP = (function () {
     boots: '靴子', weapon: '武器', trinket: '饰品'
   };
   const SLOT_ICON = {
-    helmet: 'armor', chest: 'armor', legs: 'armor',
+    helmet: 'helmetIco', chest: 'chestIco', legs: 'legsIco',
     boots: 'boot', weapon: 'sword', trinket: 'star'
   };
 
