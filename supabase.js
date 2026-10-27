@@ -157,6 +157,21 @@ const SB = (function () {
   }
 
   async function signUp(name, password) {
+    // 注册前先查名字有没有被占用（同名会造成排行榜出现两条一样的名字）
+    if (ready()) {
+      try {
+        const dup = await api(
+          '/rest/v1/profiles?trainer_name=eq.' + encodeURIComponent(name) + '&select=id'
+        );
+        if (Array.isArray(dup) && dup.length) {
+          throw new Error('「' + name + '」这个名字已经被使用了，换一个吧');
+        }
+      } catch (e) {
+        if (e && e.message && e.message.indexOf('已经被使用') >= 0) throw e;
+        // 查询本身失败（网络/权限）就不拦，交给后面的注册流程
+      }
+    }
+
     const data = await api('/auth/v1/signup', {
       method: 'POST',
       body: JSON.stringify({ email: emailOf(name), password, data: { trainer_name: name } })
@@ -186,6 +201,8 @@ const SB = (function () {
       refresh_token: data.refresh_token,
       user: { id: data.user.id, name: nm }
     });
+    // 档案缺失时补建（换设备登录 / 历史数据被清理后都能拿到进度）
+    await ensureProfile(nm);
     return session.user;
   }
 
