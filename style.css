@@ -1034,13 +1034,15 @@ body.is-touch .hud-right{margin-right:48px;}
 /* ==================== 军械库 ==================== */
 .modal-box.wide{width:min(560px,94vw);}
 .armory-list{
-  max-height:min(52vh,420px);overflow-y:auto;
+  max-height:min(44vh,340px);overflow-y:scroll;
   -webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;
   display:flex;flex-direction:column;gap:6px;
   padding-right:4px;margin-bottom:4px;
 }
-.armory-list::-webkit-scrollbar{width:7px;}
-.armory-list::-webkit-scrollbar-thumb{background:var(--ink2);}
+.armory-list::-webkit-scrollbar{width:10px;}
+.armory-list::-webkit-scrollbar-track{background:var(--paper2);border-radius:5px;}
+.armory-list::-webkit-scrollbar-thumb{background:var(--ink2);border-radius:5px;}
+.armory-list,.shop-list{scrollbar-width:thin;scrollbar-color:var(--ink2) var(--paper2);}
 .armory-empty{
   text-align:center;padding:30px 12px;
   font-size:12px;font-weight:700;color:var(--text-dim);line-height:1.7;
@@ -1098,12 +1100,13 @@ body.is-touch .hud-right{margin-right:48px;}
 .ai-sell:hover{background:var(--yellow);}
 
 .shop-list{
-  max-height:min(52vh,420px);overflow-y:auto;
+  max-height:min(44vh,340px);overflow-y:scroll;
   -webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;
   display:flex;flex-direction:column;gap:7px;padding-right:4px;
 }
-.shop-list::-webkit-scrollbar{width:7px;}
-.shop-list::-webkit-scrollbar-thumb{background:var(--ink2);}
+.shop-list::-webkit-scrollbar{width:10px;}
+.shop-list::-webkit-scrollbar-track{background:var(--paper2);border-radius:5px;}
+.shop-list::-webkit-scrollbar-thumb{background:var(--ink2);border-radius:5px;}
 .shop-item{
   display:flex;align-items:center;gap:9px;
   padding:8px 10px;flex-shrink:0;
@@ -1159,7 +1162,7 @@ body.is-touch .hud-right{margin-right:48px;}
   .equip-slots{gap:4px;}
   .equip-slot .es-name{font-size:8px;}
   .equip-slot .es-q{font-size:7px;}
-  .armory-list,.shop-list{max-height:min(58vh,460px);}
+  .armory-list,.shop-list{max-height:min(50vh,400px);}
 }
 
 /* ==================== 装备详情 ==================== */
@@ -1196,3 +1199,15 @@ body.is-touch .hud-right{margin-right:48px;}
 }
 .id-foot b{font-size:15px;color:var(--ink);font-family:"Courier New",monospace;}
 .id-cmp{font-size:10.5px;color:var(--text-dim);}
+
+/* ==================== 音效按钮 ==================== */
+.sfx-btn{
+  width:34px;height:34px;flex-shrink:0;border-radius:3px;
+  background:var(--paper2);border:2px solid var(--ink);
+  box-shadow:0 3px 0 var(--ink2);
+  font-size:15px;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .08s, box-shadow .08s;
+}
+.sfx-btn:active{transform:translateY(3px);box-shadow:none;}
+.sfx-btn.off{opacity:.45;}
