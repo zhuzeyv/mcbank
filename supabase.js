@@ -177,14 +177,14 @@ const SB = (function () {
     if (!ready() || !session) return null;
     try {
       const rows = await api(
-        `/rest/v1/profiles?id=eq.${session.user.id}&select=cleared,cleared_hard,stats`
+        `/rest/v1/profiles?id=eq.${session.user.id}&select=cleared,cleared_hard,stats,equipment`
       );
       if (Array.isArray(rows) && rows.length) return rows[0];
     } catch (e) {}
     return null;
   }
 
-  async function saveCloudProgress(cleared, clearedHard, stats) {
+  async function saveCloudProgress(cleared, clearedHard, stats, equipment) {
     if (!ready() || !session) return false;
     try {
       await api(`/rest/v1/profiles?id=eq.${session.user.id}`, {
@@ -192,7 +192,8 @@ const SB = (function () {
         body: JSON.stringify({
           cleared: cleared || [],
           cleared_hard: clearedHard || [],
-          stats: stats || {}
+          stats: stats || {},
+          equipment: equipment || {}
         })
       });
       return true;
