@@ -216,12 +216,42 @@ const Game = (function () {
   // 触屏摇杆状态
   const stick = { dx: 0, dy: 0, active: false, id: null, cx: 0, cy: 0, maxR: 46 };
 
+  // 触屏检测：不依赖 CSS 媒体查询（QQ/微信内置浏览器对 pointer/hover 报告不可靠）
+  function detectTouch() {
+    const coarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+    const hasTouch = (navigator.maxTouchPoints > 0)
+      || ('ontouchstart' in window)
+      || coarse;
+    if (hasTouch) document.body.classList.add('is-touch');
+    return hasTouch;
+  }
+
+  function resetStickPos() {
+    const el = document.getElementById('joystick');
+    if (!el) return;
+    el.style.left = '';
+    el.style.top = '';
+    el.style.bottom = '';
+  }
+
+  // 把摇杆挪到手指按下的位置（动态摇杆，任意位置都能拖）
+  function placeStick(x, y) {
+    const el = document.getElementById('joystick');
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const size = r.width || 124;
+    el.style.left = (x - size / 2) + 'px';
+    el.style.top = (y - size / 2) + 'px';
+    el.style.bottom = 'auto';
+  }
+
   function resetStick() {
     stick.dx = 0; stick.dy = 0; stick.active = false; stick.id = null;
     const knob = document.getElementById('stickKnob');
     const joy = document.getElementById('joystick');
     if (knob) knob.style.transform = 'translate(0px,0px)';
     if (joy) joy.classList.remove('active');
+    resetStickPos();
   }
 
   function bindJoystick() {
@@ -243,22 +273,32 @@ const Game = (function () {
       stick.dy = Math.abs(ny) < dead ? 0 : ny;
     };
 
-    const start = t => {
-      const r = el.getBoundingClientRect();
-      stick.cx = r.left + r.width / 2;
-      stick.cy = r.top + r.height / 2;
-      stick.maxR = r.width * 0.38;
+    // 从某个屏幕坐标开始拖（center 为空则用元素中心）
+    const begin = (t, dynamic) => {
+      if (dynamic) {
+        placeStick(t.clientX, t.clientY);
+        stick.cx = t.clientX;
+        stick.cy = t.clientY;
+        const r = el.getBoundingClientRect();
+        stick.maxR = (r.width || 124) * 0.38;
+      } else {
+        const r = el.getBoundingClientRect();
+        stick.cx = r.left + r.width / 2;
+        stick.cy = r.top + r.height / 2;
+        stick.maxR = r.width * 0.38;
+      }
       stick.id = t.identifier;
       stick.active = true;
       el.classList.add('active');
       move(t);
     };
 
+    const canPlay = () => S && S.running && !S.paused && !S.over && S.pendingLevels === 0;
+
     el.addEventListener('touchstart', e => {
       e.preventDefault();
-      if (!S || !S.running || S.paused || S.over || S.pendingLevels > 0) return;
-      if (stick.active) return;
-      start(e.changedTouches[0]);
+      if (!canPlay() || stick.active) return;
+      begin(e.changedTouches[0], false);
     }, { passive: false });
 
     el.addEventListener('touchmove', e => {
@@ -276,6 +316,27 @@ const Game = (function () {
     };
     el.addEventListener('touchend', stop);
     el.addEventListener('touchcancel', stop);
+
+    // 兜底：在画布任意位置按下也能拖（防止摇杆元素被遮挡或不可见）
+    const cvs = document.getElementById('cv');
+    if (cvs) {
+      cvs.addEventListener('touchstart', e => {
+        if (!canPlay() || stick.active) return;
+        begin(e.changedTouches[0], true);
+        e.preventDefault();
+      }, { passive: false });
+
+      cvs.addEventListener('touchmove', e => {
+        if (!stick.active) return;
+        for (const t of e.changedTouches) {
+          if (t.identifier === stick.id) move(t);
+        }
+        e.preventDefault();
+      }, { passive: false });
+
+      cvs.addEventListener('touchend', stop);
+      cvs.addEventListener('touchcancel', stop);
+    }
   }
 
   function bindInput() {
@@ -1669,6 +1730,7 @@ const Game = (function () {
 
   /* ==================== 按钮绑定 ==================== */
   function init() {
+    detectTouch();
     document.getElementById('btnRetry').onclick = () => {
       if (!S) return;
       const cfg = S.cfg;
