@@ -56,16 +56,39 @@ const SB = (function () {
     } else if (CONFIG.anonKey.indexOf('eyJ') === 0) {
       headers['Authorization'] = 'Bearer ' + CONFIG.anonKey;
     }
-    const res = await fetch(CONFIG.url + path, {
-      method: opts.method || 'GET',
-      headers,
-      body: opts.body
-    });
+
+    // 超时控制：项目在悉尼，跨洋延迟 1.5s 起，移动网络容易卡死
+    const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), 20000) : null;
+
+    let res;
+    try {
+      res = await fetch(CONFIG.url + path, {
+        method: opts.method || 'GET',
+        headers,
+        body: opts.body,
+        signal: ctrl ? ctrl.signal : undefined
+      });
+    } catch (e) {
+      if (timer) clearTimeout(timer);
+      if (e && e.name === 'AbortError') {
+        throw new Error('连接超时（20 秒无响应），请检查网络后重试');
+      }
+      throw new Error('网络连接失败，请重试。若持续失败，可能是当前网络访问 supabase 不稳定');
+    }
+    if (timer) clearTimeout(timer);
+
     const text = await res.text();
     let data = null;
     try { data = text ? JSON.parse(text) : null; } catch (e) { data = text; }
+
     if (!res.ok) {
-      const msg = (data && (data.msg || data.error_description || data.message || data.hint)) || ('HTTP ' + res.status);
+      let msg = (data && (data.msg || data.error_description || data.message || data.hint)) || ('HTTP ' + res.status);
+      // 常见错误翻译成人话
+      if (/invalid format/i.test(msg)) msg = '名称格式不被接受，请换一个名字试试';
+      if (/already registered|already exists/i.test(msg)) msg = '这个名称已被注册，换一个或直接登录';
+      if (/Invalid login credentials/i.test(msg)) msg = '名称或密码不对';
+      if (/Password should be at least/i.test(msg)) msg = '密码太短，至少 8 位';
       const err = new Error(msg);
       err.status = res.status;
       throw err;
@@ -75,7 +98,13 @@ const SB = (function () {
 
   /* ---------- 账号 ---------- */
   // Supabase 默认要邮箱，这里用 用户名@mcbank.local 伪造
-  const emailOf = name => name.toLowerCase().replace(/[^a-z0-9_\u4e00-\u9fa5]/g, '') + '@mcbank.local';
+  // 用名字哈希生成邮箱：中文/特殊字符会导致邮箱格式非法，所以不能直接拼名字
+  function emailOf(name) {
+    let h = 5381;
+    for (let i = 0; i < name.length; i++) h = ((h << 5) + h + name.charCodeAt(i)) >>> 0;
+    const ascii = name.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 10);
+    return 'u' + h.toString(36) + (ascii ? '.' + ascii : '') + '@example.com';
+  }
 
   function loadSession() {
     try {
