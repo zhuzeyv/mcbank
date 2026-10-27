@@ -16,13 +16,28 @@ const EQUIP = (function () {
     boots: 'boot', weapon: 'sword', trinket: 'star'
   };
 
-  // 品质：id 越大越好
+  // 品质：20 档，id 越大越好；weight 是掉落权重（合计约 100）
   const QUALITY = [
-    { id: 0, name: '普通', color: '#9a9aa8', dark: '#5a5a68', mul: 1.00, affix: 1 },
-    { id: 1, name: '精良', color: '#4ade80', dark: '#237a35', mul: 1.35, affix: 2 },
-    { id: 2, name: '稀有', color: '#3aa8ff', dark: '#1f5fa8', mul: 1.75, affix: 2 },
-    { id: 3, name: '史诗', color: '#c45cf0', dark: '#6a35a8', mul: 2.30, affix: 3 },
-    { id: 4, name: '传说', color: '#ffc93c', dark: '#c89410', mul: 3.00, affix: 3 }
+    { id: 0,  name: '残次', color: '#6b6b6b', dark: '#3a3a3a', mul: 0.70, weight: 5.00, affix: 1 },
+    { id: 1,  name: '粗糙', color: '#8a8a8a', dark: '#4e4e4e', mul: 0.80, weight: 5.00, affix: 1 },
+    { id: 2,  name: '普通', color: '#a0a0a0', dark: '#5c5c5c', mul: 0.90, weight: 5.00, affix: 1 },
+    { id: 3,  name: '扎实', color: '#b0a890', dark: '#6a6458', mul: 1.00, weight: 5.00, affix: 1 },
+    { id: 4,  name: '优良', color: '#7ec850', dark: '#3f7a28', mul: 1.10, weight: 5.00, affix: 2 },
+    { id: 5,  name: '考究', color: '#4aa85a', dark: '#23602e', mul: 1.20, weight: 5.00, affix: 2 },
+    { id: 6,  name: '精良', color: '#3aa8ff', dark: '#1f5fa8', mul: 1.35, weight: 6.25, affix: 2 },
+    { id: 7,  name: '匠心', color: '#5a8aff', dark: '#2a4fa8', mul: 1.50, weight: 6.25, affix: 2 },
+    { id: 8,  name: '卓越', color: '#7a5aff', dark: '#4a2fa8', mul: 1.65, weight: 6.25, affix: 3 },
+    { id: 9,  name: '稀有', color: '#a05aff', dark: '#5f2fa8', mul: 1.80, weight: 6.25, affix: 3 },
+    { id: 10, name: '罕见', color: '#c05aff', dark: '#7a2fa8', mul: 1.95, weight: 6.25, affix: 3 },
+    { id: 11, name: '瑰宝', color: '#e05aff', dark: '#962fa8', mul: 2.10, weight: 6.25, affix: 3 },
+    { id: 12, name: '史诗', color: '#ff5ac0', dark: '#a82a72', mul: 2.30, weight: 6.25, affix: 3 },
+    { id: 13, name: '超凡', color: '#ff5a8a', dark: '#a82a48', mul: 2.50, weight: 6.25, affix: 4 },
+    { id: 14, name: '传说', color: '#ffc93c', dark: '#c89410', mul: 2.80, weight: 3.33, affix: 4 },
+    { id: 15, name: '不朽', color: '#ffb020', dark: '#b87800', mul: 3.10, weight: 3.33, affix: 4 },
+    { id: 16, name: '神话', color: '#ff8a20', dark: '#b05a00', mul: 3.40, weight: 3.33, affix: 4 },
+    { id: 17, name: '逆天', color: '#ff5a30', dark: '#a83410', mul: 3.70, weight: 3.33, affix: 4 },
+    { id: 18, name: '寰宇', color: '#ff3a3a', dark: '#a81a1a', mul: 4.00, weight: 3.33, affix: 4 },
+    { id: 19, name: '根源', color: '#ff1a6a', dark: '#a80a3a', mul: 4.50, weight: 3.33, affix: 4 }
   ];
 
   const STATS = [
@@ -35,13 +50,23 @@ const EQUIP = (function () {
     { id: 'pickup', name: '拾取', base: 0.120, pct: true }
   ];
 
+  const TOTAL_WEIGHT = QUALITY.reduce(function (a, q) { return a + q.weight; }, 0);
+
+  // 按权重抽品质；luck（怪物等级）会额外往上抬几档
   function rollQuality(luck) {
-    const r = Math.random() * 100 - (luck || 0);
-    if (r < 2) return QUALITY[4];
-    if (r < 10) return QUALITY[3];
-    if (r < 30) return QUALITY[2];
-    if (r < 62) return QUALITY[1];
-    return QUALITY[0];
+    let r = Math.random() * TOTAL_WEIGHT;
+    let pick = QUALITY[0];
+    for (const q of QUALITY) {
+      r -= q.weight;
+      if (r <= 0) { pick = q; break; }
+    }
+    // 等级加成：luck 越高，越容易往上跳
+    const L = luck || 0;
+    if (L > 0 && Math.random() * 100 < L * 2.2) {
+      const up = 1 + Math.floor(Math.random() * 3);
+      pick = QUALITY[Math.min(QUALITY.length - 1, pick.id + up)];
+    }
+    return pick;
   }
 
   // level：怪物强度，越高越容易出好货
@@ -72,7 +97,7 @@ const EQUIP = (function () {
   }
 
   function qualityOf(qid) {
-    return QUALITY[Math.max(0, Math.min(4, qid | 0))];
+    return QUALITY[Math.max(0, Math.min(QUALITY.length - 1, qid | 0))];
   }
 
   // 把一套装备的属性汇总成一个加成对象
@@ -96,7 +121,7 @@ const EQUIP = (function () {
     for (const a of it.affixes) {
       s += a.pct ? a.v * 100 : a.v * 0.6;
     }
-    return Math.round(s * (1 + it.quality * 0.15));
+    return Math.round(s * (1 + it.quality * 0.045));
   }
 
   return { SLOTS, SLOT_NAME, SLOT_ICON, QUALITY, STATS, make, desc, qualityOf, totalBonus, score };
