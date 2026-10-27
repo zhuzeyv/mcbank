@@ -595,6 +595,159 @@ function renderExtraPage(page) {
   }
 }
 
+/* ---------- 赛季排行榜 ---------- */
+const RANK_TIERS = [
+  { range: '第 1 名',   reward: '金色徽章 + 专属称号', cls: 't1' },
+  { range: '2 - 3 名',  reward: '银色徽章',           cls: 't2' },
+  { range: '4 - 10 名', reward: '铜色徽章',           cls: 't3' },
+  { range: '11 - 25 名', reward: '赛季头像框',        cls: 't4' },
+  { range: '26 - 50 名', reward: '限定称号',          cls: 't5' },
+  { range: '51 - 100 名', reward: '纪念徽章',         cls: 't6' }
+];
+
+function fmtScore(n) {
+  n = Math.max(0, Math.round(n || 0));
+  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+async function renderRank() {
+  const wrap = document.getElementById('rankWrap');
+  if (!wrap) return;
+  const season = SB.currentSeason();
+  const cd = SB.seasonCountdown();
+
+  wrap.innerHTML =
+    `<div class="rank-head">
+       <div class="rank-season">🏆 ${season.name}</div>
+       <div class="rank-cd" id="rankCd">${cd.text}</div>
+     </div>
+     <div class="rank-toolbar">
+       <span class="rank-mode on">按积分</span>
+       <span class="rank-hint">${SB.isMock() ? '本地演示数据（未连接数据库）' : '实时数据'}</span>
+     </div>
+     <div class="rank-list" id="rankList"><div class="rank-loading">加载中…</div></div>
+     <div class="rank-reward">
+       <div class="rr-title">赛季奖励</div>
+       <div class="rr-tiers">
+         ${RANK_TIERS.map(t => `<div class="rr-tier ${t.cls}"><b>${t.range}</b><span>${t.reward}</span></div>`).join('')}
+       </div>
+     </div>`;
+
+  const list = document.getElementById('rankList');
+  try {
+    const rows = await SB.getLeaderboard(season.id, 100);
+    if (!rows.length) {
+      list.innerHTML = '<div class="rank-loading">本赛季还没有人上榜，去拿第一个吧</div>';
+      return;
+    }
+    const me = SB.currentUser();
+    list.innerHTML = rows.map((r, i) => {
+      const rank = i + 1;
+      const cls = rank === 1 ? 'r1' : rank === 2 ? 'r2' : rank === 3 ? 'r3' : '';
+      const isMe = me && r.trainer_name === me.name;
+      return `<div class="rank-row ${cls}${isMe ? ' me' : ''}">
+        <div class="rk-no">${rank <= 3 ? ['🥇', '🥈', '🥉'][rank - 1] : rank}</div>
+        <div class="rk-av">${(r.trainer_name || '?').slice(0, 1)}</div>
+        <div class="rk-main">
+          <div class="rk-name">${r.trainer_name || '匿名'}</div>
+          <div class="rk-meta">${r.level || 0} 级 · ${r.kills || 0} 击杀</div>
+        </div>
+        <div class="rk-score">${fmtScore(r.score)}</div>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    list.innerHTML = `<div class="rank-loading">读取失败：${e.message || e}</div>`;
+  }
+}
+
+/* ---------- 账号 ---------- */
+let accMode = 'signup';
+
+function refreshAccountBar() {
+  const u = (typeof SB !== 'undefined') ? SB.currentUser() : null;
+  const nameEl = document.getElementById('accName');
+  const subEl = document.getElementById('accSub');
+  const avatarEl = document.getElementById('accAvatar');
+  const btn = document.getElementById('btnAccount');
+  if (!nameEl) return;
+  if (u) {
+    nameEl.textContent = u.name;
+    subEl.textContent = '已绑定 · 成绩会上榜';
+    avatarEl.textContent = (u.name || '?').slice(0, 1);
+    btn.textContent = '退出登录';
+    btn.onclick = () => { SB.signOut(); refreshAccountBar(); toast('已退出登录'); };
+  } else {
+    nameEl.textContent = '游客';
+    subEl.textContent = '进度仅保存在本机';
+    avatarEl.textContent = '?';
+    btn.textContent = '保存到账号';
+    btn.onclick = () => openAccountModal('signup');
+  }
+}
+
+function openAccountModal(mode) {
+  accMode = mode || 'signup';
+  const modal = document.getElementById('accountModal');
+  const title = document.getElementById('modalTitle');
+  const tip = document.getElementById('modalTip');
+  const pass2 = document.getElementById('accPass2Input');
+  const submit = document.getElementById('btnAccSubmit');
+  const swText = document.getElementById('accSwitchText');
+  const swBtn = document.getElementById('btnAccSwitch');
+  document.getElementById('accErr').textContent = '';
+
+  if (accMode === 'signup') {
+    title.textContent = '保存到账号';
+    tip.textContent = '你将会保留全部游客进度。';
+    pass2.style.display = '';
+    submit.textContent = '创建账号';
+    swText.textContent = '已有账号？';
+    swBtn.textContent = '去登录';
+  } else {
+    title.textContent = '登录账号';
+    tip.textContent = '输入你的训练家名称和密码。';
+    pass2.style.display = 'none';
+    submit.textContent = '登录';
+    swText.textContent = '还没有账号？';
+    swBtn.textContent = '去注册';
+  }
+  modal.classList.remove('hidden');
+  setTimeout(() => document.getElementById('accNameInput').focus(), 60);
+}
+
+function closeAccountModal() {
+  document.getElementById('accountModal').classList.add('hidden');
+}
+
+async function submitAccount() {
+  const errEl = document.getElementById('accErr');
+  const name = document.getElementById('accNameInput').value.trim();
+  const p1 = document.getElementById('accPassInput').value;
+  const p2 = document.getElementById('accPass2Input').value;
+  errEl.textContent = '';
+
+  if (name.length < 2) { errEl.textContent = '名称至少 2 个字符'; return; }
+  if (p1.length < 8) { errEl.textContent = '密码至少 8 个字符'; return; }
+  if (accMode === 'signup' && p1 !== p2) { errEl.textContent = '两次输入的密码不一致'; return; }
+  if (typeof SB === 'undefined') { errEl.textContent = '账号模块未加载'; return; }
+
+  const btn = document.getElementById('btnAccSubmit');
+  btn.disabled = true;
+  btn.textContent = accMode === 'signup' ? '创建中…' : '登录中…';
+  try {
+    if (accMode === 'signup') await SB.signUp(name, p1);
+    else await SB.signIn(name, p1);
+    closeAccountModal();
+    refreshAccountBar();
+    toast(accMode === 'signup' ? '账号已创建' : '登录成功');
+  } catch (e) {
+    errEl.textContent = e.message || '操作失败';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = accMode === 'signup' ? '创建账号' : '登录';
+  }
+}
+
 function mobGlyph(m) {
   const k = m.kind;
   if (k === 'creeper') return ICON.creeper;
@@ -623,7 +776,7 @@ function bindTabs() {
       const p = t.dataset.page;
       const show = id => { document.getElementById(id).hidden = false; };
       const hide = id => { document.getElementById(id).hidden = true; };
-      hide('pageChar'); hide('pageData'); hide('pageSoon');
+      hide('pageChar'); hide('pageData'); hide('pageSoon'); hide('pageRank');
 
       // 底部出发栏只在角色页有意义
       const isChar = p === 'char';
@@ -632,6 +785,9 @@ function bindTabs() {
 
       if (isChar) {
         show('pageChar');
+      } else if (p === 'rank') {
+        show('pageRank');
+        renderRank();
       } else if (p === 'codex' || p === 'loot' || p === 'talent') {
         renderDataPage(p);
         show('pageData');
@@ -690,6 +846,17 @@ function initMenu() {
   document.getElementById('btnArmory').onclick = () => toast('军械库：击杀首领后可解锁');
   document.getElementById('btnTalent').onclick = () => {
     document.querySelector('.tab[data-page="talent"]').click();
+  };
+
+  // 账号栏与弹窗
+  refreshAccountBar();
+  document.getElementById('btnAccCancel').onclick = closeAccountModal;
+  document.getElementById('btnAccSubmit').onclick = submitAccount;
+  document.getElementById('btnAccSwitch').onclick = () => {
+    openAccountModal(accMode === 'signup' ? 'signin' : 'signup');
+  };
+  document.getElementById('accountModal').onclick = e => {
+    if (e.target.id === 'accountModal') closeAccountModal();
   };
 
   // 键盘快捷键
