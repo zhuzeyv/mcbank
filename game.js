@@ -1788,6 +1788,17 @@ const Game = (function () {
     if (typeof recordRun === 'function') {
       recordRun({ kills: S.kills, level: S.level });
     }
+    // 上传赛季成绩（仅登录用户）
+    try {
+      if (typeof SB !== 'undefined' && SB.currentUser && SB.currentUser()) {
+        const score = S.kills * 10 + S.level * 50 + (isWin ? 500 : 0);
+        SB.submitRun({
+          trainer_name: SB.currentUser().name,
+          score: score, kills: S.kills, level: S.level,
+          zone: S.zone.id, season: SB.currentSeason().id
+        }).catch(function () {});
+      }
+    } catch (e) {}
     const t = Math.floor(S.time);
     document.getElementById('resTitle').textContent = isWin ? '首 领 已 陨 落' : '你 倒 下 了';
     document.getElementById('resTitle').className = 'res-title' + (isWin ? '' : ' dead');
