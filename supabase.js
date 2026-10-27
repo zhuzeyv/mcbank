@@ -244,7 +244,11 @@ const SB = (function () {
 
     const best = new Map();
     for (const r of rows) {
-      const key = r.user_id || ('name:' + (r.trainer_name || '?'));
+      // 按「名字」去重而不是 user_id：
+      // 同一个名字在历史上可能对应多个账号（邮箱生成方式变过），
+      // 排行榜展示的是玩家名，所以同名只留最高分。
+      const nm = (r.trainer_name || '').trim().toLowerCase();
+      const key = nm || ('uid:' + r.user_id);
       const prev = best.get(key);
       if (!prev || (r.score || 0) > (prev.score || 0)) best.set(key, r);
     }
