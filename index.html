@@ -230,6 +230,41 @@
 
 <div id="toast" class="toast"></div>
 
+<!-- 军械库弹窗 -->
+<div class="modal hidden" id="armoryModal">
+  <div class="modal-box wide">
+    <div class="modal-head"><span>军械库</span></div>
+    <div class="modal-body">
+      <div class="armory-top">
+        <span class="modal-tip" style="margin:0">点击穿戴 · 点「卖」换金币</span>
+        <span class="gold-chip">金币 <b id="goldNum">0</b></span>
+      </div>
+      <div class="armory-list" id="armoryList"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="modal-btn primary" id="btnGoShop">商城</button>
+      <button class="modal-btn ghost" id="btnArmoryClose">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 商城弹窗 -->
+<div class="modal hidden" id="shopModal">
+  <div class="modal-box wide">
+    <div class="modal-head"><span>商城</span></div>
+    <div class="modal-body">
+      <div class="armory-top">
+        <span class="modal-tip" style="margin:0">卖旧装备攒金币，这里能买到更好的</span>
+        <span class="gold-chip">金币 <b id="shopGold">0</b></span>
+      </div>
+      <div class="shop-list" id="shopList"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="modal-btn ghost" id="btnShopClose">关闭</button>
+    </div>
+  </div>
+</div>
+
 <!-- 账号弹窗 -->
 <div class="modal hidden" id="accountModal">
   <div class="modal-box">
