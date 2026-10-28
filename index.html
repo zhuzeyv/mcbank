@@ -232,6 +232,23 @@
 
 <div id="toast" class="toast"></div>
 
+<!-- 绑定游戏 ID -->
+<div class="modal hidden" id="gameIdModal">
+  <div class="modal-box">
+    <div class="modal-head"><span>绑定游戏 ID</span></div>
+    <div class="modal-body">
+      <p class="modal-tip">填写你在服务器里的游戏 ID，服主会按排行榜发放奖励。</p>
+      <input id="gameIdInput" class="modal-input" placeholder="例如：Steve" maxlength="16" autocomplete="off">
+      <p class="modal-note">绑定后排行榜会显示你的游戏 ID，方便服主找到你。可以随时修改。</p>
+      <p class="modal-err" id="gameIdErr"></p>
+    </div>
+    <div class="modal-foot">
+      <button class="modal-btn ghost" id="btnGameIdCancel">取消</button>
+      <button class="modal-btn primary" id="btnGameIdSave">保存</button>
+    </div>
+  </div>
+</div>
+
 <!-- 军械库弹窗 -->
 <div class="modal hidden" id="armoryModal">
   <div class="modal-box wide">
