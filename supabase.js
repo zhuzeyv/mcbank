@@ -67,6 +67,33 @@ const SB = (function () {
 
   function ready() { return !!(CONFIG.url && CONFIG.anonKey); }
 
+  // 带自动重试的 fetch：跨洋网络抖动时多试几次，比直接报错友好得多
+  async function rawFetch(url, options, retries) {
+    const max = (retries == null) ? 2 : retries;
+    let lastErr = null;
+    for (let attempt = 0; attempt <= max; attempt++) {
+      let ctrl = null, timer = null;
+      try {
+        if (typeof AbortController !== 'undefined') {
+          ctrl = new AbortController();
+          timer = setTimeout(function () { ctrl.abort(); }, 12000);
+        }
+        const res = await fetch(url, Object.assign({}, options,
+          { signal: ctrl ? ctrl.signal : undefined }));
+        if (timer) clearTimeout(timer);
+        return res;
+      } catch (e) {
+        if (timer) clearTimeout(timer);
+        lastErr = e;
+        // 还有重试机会就等一下再试（退避，避免打爆）
+        if (attempt < max) {
+          await new Promise(function (r) { setTimeout(r, 500 * (attempt + 1)); });
+        }
+      }
+    }
+    throw lastErr;
+  }
+
   async function api(path, opts, _retried) {
     opts = opts || {};
     const headers = Object.assign({
@@ -80,26 +107,20 @@ const SB = (function () {
       headers['Authorization'] = 'Bearer ' + CONFIG.anonKey;
     }
 
-    // 超时控制：项目在悉尼，跨洋延迟 1.5s 起，移动网络容易卡死
-    const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
-    const timer = ctrl ? setTimeout(() => ctrl.abort(), 20000) : null;
-
+    // 项目在悉尼，跨洋延迟 1.5s 起，移动网络容易断 —— 交给 rawFetch 自动重试
     let res;
     try {
-      res = await fetch(CONFIG.url + path, {
+      res = await rawFetch(CONFIG.url + path, {
         method: opts.method || 'GET',
         headers,
-        body: opts.body,
-        signal: ctrl ? ctrl.signal : undefined
+        body: opts.body
       });
     } catch (e) {
-      if (timer) clearTimeout(timer);
       if (e && e.name === 'AbortError') {
-        throw new Error('连接超时（20 秒无响应），请检查网络后重试');
+        throw new Error('连接超时，已重试 2 次仍无响应。请换个网络（比如切 WiFi/流量）再试');
       }
-      throw new Error('网络连接失败，请重试。若持续失败，可能是当前网络访问 supabase 不稳定');
+      throw new Error('网络不稳定，已自动重试 2 次。请稍后再试，或换个网络环境');
     }
-    if (timer) clearTimeout(timer);
 
     const text = await res.text();
     let data = null;
@@ -157,18 +178,28 @@ const SB = (function () {
   }
 
   async function signUp(name, password) {
-    // 注册前先查名字有没有被占用（同名会造成排行榜出现两条一样的名字）
+    // 注册前先查名字有没有被占用。
+    // 这一步用 4 秒短超时 + 不重试：网络差的时候不能为了查重把注册卡死，
+    // 查不到就跳过（数据库还有 unique 约束兜底）。
     if (ready()) {
       try {
-        const dup = await api(
-          '/rest/v1/profiles?trainer_name=eq.' + encodeURIComponent(name) + '&select=id'
+        const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+        const timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 4000) : null;
+        const res = await fetch(
+          CONFIG.url + '/rest/v1/profiles?trainer_name=eq.' + encodeURIComponent(name) + '&select=id',
+          {
+            headers: { 'apikey': CONFIG.anonKey, 'Authorization': 'Bearer ' + CONFIG.anonKey },
+            signal: ctrl ? ctrl.signal : undefined
+          }
         );
+        if (timer) clearTimeout(timer);
+        const dup = await res.json().catch(function () { return null; });
         if (Array.isArray(dup) && dup.length) {
           throw new Error('「' + name + '」这个名字已经被使用了，换一个吧');
         }
       } catch (e) {
         if (e && e.message && e.message.indexOf('已经被使用') >= 0) throw e;
-        // 查询本身失败（网络/权限）就不拦，交给后面的注册流程
+        // 超时/网络错误都跳过，直接进注册流程
       }
     }
 
@@ -314,12 +345,23 @@ const SB = (function () {
 
   loadSession();
 
+  // 预热：提前完成 DNS + TLS 握手，避免第一次登录卡在连接阶段
+  function warmup() {
+    if (!ready()) return;
+    try {
+      fetch(CONFIG.url + '/auth/v1/health', {
+        headers: { 'apikey': CONFIG.anonKey }
+      }).catch(function () {});
+    } catch (e) {}
+  }
+
   return {
     CONFIG, ready, currentSeason, seasonCountdown,
     currentUser, signUp, signIn, signOut,
     loadCloudProgress, saveCloudProgress,
     getLeaderboard, submitRun,
-    isMock: () => !ready()
+    isMock: () => !ready(),
+    warmup
   };
 })();
 
