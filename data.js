@@ -599,7 +599,7 @@ const ZONES = [
     theme: { g1: '#2a1e34', g2: '#1a1222', g3: '#3a2a48', dirt: '#120c1a', fog: 'rgba(160,90,220,.10)' },
     mobs: ['zombie', 'skeleton', 'spider', 'creeper', 'husk', 'witch',
            'blaze', 'wither_skeleton', 'enderman', 'warden_spawn'],
-    hpMul: 7.5, dmgMul: 1.7, spawnMul: 2.2, time: 120,
+    hpMul: 7.5, dmgMul: 3.0, spawnMul: 2.2, time: 120,
     endless: true
   }
 ];
