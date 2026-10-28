@@ -263,18 +263,40 @@ function drawMCFigure(g, cx, footY, unit, skin, opt) {
     Math.ceil(img.width * U), Math.ceil(img.height * U));
 
   // 武器
-  if (skin.weapon) drawHeldItem(g, skin.weapon, U * 1.35, armY / U / 1.35 + 2, 0);
+  if (skin.weapon) drawHeldItem(g, skin.weapon, U, armY / U, 0);
 
   g.restore();
 }
 
-/* 手持物品（画在右手位置 x≈7） */
+/* ---------- 武器贴图 ---------- */
+const WEAPON_KEYS = ['sword', 'shield', 'bow', 'dagger', 'apple', 'potion', 'staff', 'sapling', 'skull'];
+const WEAPON_IMGS = {};
+WEAPON_KEYS.forEach(function (k) {
+  const im = new Image();
+  im.onload = function () {
+    if (typeof renderPortrait === 'function') { try { renderPortrait(); } catch (e) {} }
+  };
+  im.src = 'assets/weapons/' + k + '.png';
+  WEAPON_IMGS[k] = im;
+});
+
+/* 手持物品：优先用贴图，加载失败才退回代码绘制 */
+
 function drawHeldItem(g, type, U, armY, bob) {
+  const y0 = armY + (bob || 0);
+  const img = WEAPON_IMGS[type];
+  if (img && img.complete && img.naturalWidth > 0) {
+    const size = 9 * U;
+    g.save();
+    g.imageSmoothingEnabled = false;
+    g.drawImage(img, Math.round(5.6 * U), Math.round((y0 - 0.5) * U), size, size);
+    g.restore();
+    return;
+  }
   const R = (x, y, w, h, c) => {
     g.fillStyle = c;
     g.fillRect(Math.round(x * U), Math.round(y * U), Math.ceil(w * U), Math.ceil(h * U));
   };
-  const y0 = armY + bob;
   if (type === 'sword') {
     R(7.0, y0 - 5, 1.6, 10, '#e8e8e8');
     R(7.0, y0 - 5, 0.7, 10, '#ffffff');
