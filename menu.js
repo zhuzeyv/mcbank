@@ -478,13 +478,18 @@ function renderEquip() {
     }
     const q = EQUIP.qualityOf(it.quality);
     const tips = it.affixes.map(function (a) { return EQUIP.desc(a); }).join(' / ');
-    return '<div class="equip-slot filled" ' +
+    return '<div class="equip-slot filled" data-eid="' + it.id + '" ' +
       'style="border-color:' + q.color + ';box-shadow:0 3px 0 ' + q.dark + '" ' +
       'title="' + q.name + ' · ' + slotName + '：' + tips + '">' +
       '<div class="es-ic">' + (ICON[EQUIP.SLOT_ICON[slot]] || '') + '</div>' +
       '<div class="es-q" style="background:' + q.color + '">' + q.name + '</div>' +
       '</div>';
   }).join('');
+
+  // 点已装备的槽位 → 看属性 / 卸下
+  box.querySelectorAll('.equip-slot.filled').forEach(function (el) {
+    el.onclick = function () { openItemDetail(el.dataset.eid); };
+  });
 
   // 称号（自动穿戴最优）+ 装备提示
   try {
@@ -609,7 +614,14 @@ let detailId = null;
 
 function openItemDetail(id) {
   const prog = loadProgress();
-  const it = (prog.armory || []).find(function (x) { return x.id === id; });
+  let it = (prog.armory || []).find(function (x) { return x.id === id; });
+  if (!it) {
+    // 可能在装备栏里但不在军械库（老存档）
+    const eq0 = prog.equipment || {};
+    for (const k in eq0) {
+      if (eq0[k] && eq0[k].id === id) { it = eq0[k]; break; }
+    }
+  }
   if (!it) return;
   detailId = id;
 
@@ -641,9 +653,11 @@ function openItemDetail(id) {
     '</div>';
 
   const wearBtn = document.getElementById('btnItemWear');
-  wearBtn.textContent = worn ? '已穿戴' : '穿戴';
-  wearBtn.disabled = worn;
+  wearBtn.textContent = worn ? '卸下' : '穿戴';
+  wearBtn.disabled = false;
+  wearBtn.classList.toggle('ghost', worn);
   document.getElementById('btnItemSell').textContent = '卖出 ' + sellPrice(it);
+  document.getElementById('btnItemSell').style.display = worn ? 'none' : '';
 
   document.getElementById('itemModal').classList.remove('hidden');
 }
@@ -651,6 +665,22 @@ function openItemDetail(id) {
 function closeItemDetail() {
   document.getElementById('itemModal').classList.add('hidden');
   detailId = null;
+}
+
+function unequipItem(slot) {
+  const prog = loadProgress();
+  if (!prog.equipment || !prog.equipment[slot]) return false;
+  delete prog.equipment[slot];
+  saveProgress(prog);
+  if (typeof SB !== 'undefined' && SB.currentUser && SB.currentUser()) {
+    SB.saveCloudProgress(prog.cleared, prog.clearedHard, prog.stats, prog.equipment,
+      prog.armory, prog.gold, prog.talents).catch(function () {});
+  }
+  renderEquip();
+  renderArmory();
+  if (typeof SFX !== 'undefined') SFX.click();
+  toast('已卸下 ' + EQUIP.SLOT_NAME[slot]);
+  return true;
 }
 
 function wearItem(id) {
@@ -1361,7 +1391,14 @@ function initMenu() {
   };
   document.getElementById('btnItemWear').onclick = () => {
     if (!detailId) return;
-    wearItem(detailId);
+    const prog = loadProgress();
+    const eqNow = prog.equipment || {};
+    let wornSlot = null;
+    for (const k in eqNow) {
+      if (eqNow[k] && eqNow[k].id === detailId) { wornSlot = k; break; }
+    }
+    if (wornSlot) unequipItem(wornSlot);
+    else wearItem(detailId);
     closeItemDetail();
   };
   document.getElementById('btnItemSell').onclick = () => {
