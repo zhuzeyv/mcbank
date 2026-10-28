@@ -1040,7 +1040,8 @@ const Game = (function () {
     const base = MOBS[kind];
     if (!base) return null;
     scale = scale || 1;
-    const tScale = 1 + S.time / 148 + Math.pow(Math.max(0, S.time - 300) / 500, 1.6) * 0.6;   // 玩家有装备/称号/天赋后变强，怪也得跟上
+    let tScale = 1 + S.time / 148 + Math.pow(Math.max(0, S.time - 300) / 500, 1.6) * 0.6;
+    if (S.zone.endless) tScale *= 1.35;   // 无尽模式成长更快   // 玩家有装备/称号/天赋后变强，怪也得跟上
     const hp = base.hp * S.zone.hpMul * S.diff.hp * tScale * scale;
     return {
       x, y,
@@ -1049,7 +1050,7 @@ const Game = (function () {
       skin: base.skin,
       hp, maxHp: hp,
       spd: base.spd,
-      dmg: base.dmg * S.diff.dmg * 1.10,   // 玩家变强了，怪也得跟上
+      dmg: base.dmg * S.diff.dmg * 1.10 * (S.zone.dmgMul || 1),   // 区域伤害倍率（无尽模式更狠）
       xp: base.xp * S.diff.xp,   // 难度经验倍率
       ranged: !!base.ranged,
       atkCdBase: base.atkCd || 2.2,
