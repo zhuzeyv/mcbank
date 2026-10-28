@@ -732,7 +732,8 @@ const MOBS = {
     skin: { head: '#8a9a6a', hair: '#2a2a2a', body: '#5a3a6a', arm: '#8a9a6a', leg: '#3a2a4a', eye: '#c8302a' }
   },
   blaze: {
-    name: '烈焰人', hp: 38, spd: 80, dmg: 11, xp: 6, size: 42, kind: 'blaze', ranged: true,
+    name: '烈焰人', hp: 34, spd: 66, dmg: 8, xp: 6, size: 42, kind: 'blaze', ranged: true,
+    atkCd: 3.4, shootRange: 310,   // 射得慢、射得近，给玩家留出躲避空间
     skin: { body: '#e8a020', dark: '#c07010', eye: '#fff0a0' }
   },
   wither_skeleton: {
