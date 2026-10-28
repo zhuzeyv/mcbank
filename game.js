@@ -102,7 +102,8 @@ const Game = (function () {
       anim: 0,
       swing: 0,
       weapons: [],
-      invuln: 0
+      invuln: 0,
+      healBudget: 0
     };
     p.maxHp = Math.round((cls.hp + (race.bonus.hp || 0)) * 1.25);
 
@@ -227,10 +228,14 @@ const Game = (function () {
     if (e.dead) return;
     const { dmg, crit } = rollDamage(base);
     e.hp -= dmg;
-    // 吸血
+    // 吸血（受每秒预算限制）
     if (S.player.lifesteal > 0 && dmg > 0) {
-      const heal = dmg * S.player.lifesteal;
-      if (heal >= 0.5) S.player.hp = Math.min(S.player.maxHp, S.player.hp + heal);
+      const want = dmg * S.player.lifesteal;
+      const heal = Math.min(want, S.player.healBudget || 0);
+      if (heal >= 0.5) {
+        S.player.hp = Math.min(S.player.maxHp, S.player.hp + heal);
+        S.player.healBudget = Math.max(0, (S.player.healBudget || 0) - heal);
+      }
     }
     e.hitFlash = 0.1;
     e.kx = (e.kx || 0) + (opts && opts.kx ? opts.kx : 0);
@@ -534,6 +539,10 @@ const Game = (function () {
     if (p.regen > 0 && p.hp < p.maxHp) {
       p.hp = Math.min(p.maxHp, p.hp + p.regen * dt);
     }
+    // 吸血预算：每秒最多回 3.5% 最大生命，最多攒 2 秒的量
+    // （防止高 DPS 玩家靠低吸血也能无限回血）
+    const healCap = p.maxHp * 0.035;
+    p.healBudget = Math.min(healCap * 2, (p.healBudget || 0) + healCap * dt);
 
     // ---- 摄像机（等距：玩家恒在屏幕中心）----
     S.cam.x = p.x;
