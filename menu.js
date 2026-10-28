@@ -22,6 +22,7 @@ function loadProgress() {
     _progressCache = {
       cleared: obj && Array.isArray(obj.cleared) ? obj.cleared : [],
       clearedHard: obj && Array.isArray(obj.clearedHard) ? obj.clearedHard : [],
+      clearedNightmare: obj && Array.isArray(obj.clearedNightmare) ? obj.clearedNightmare : [],
       stats: (obj && obj.stats) || { kills: 0, bestLevel: 0, games: 0 },
       equipment: (obj && obj.equipment) || {},
       armory: (obj && obj.armory) || [],
@@ -30,7 +31,7 @@ function loadProgress() {
       shopUntil: (obj && obj.shopUntil) || 0
     };
   } catch (e) {
-    _progressCache = { cleared: [], clearedHard: [], stats: { kills: 0, bestLevel: 0, games: 0 }, equipment: {}, armory: [], gold: 0, talents: {}, shopUntil: 0 };
+    _progressCache = { cleared: [], clearedHard: [], clearedNightmare: [], stats: { kills: 0, bestLevel: 0, games: 0 }, equipment: {}, armory: [], gold: 0, talents: {}, shopUntil: 0 };
   }
   return _progressCache;
 }
@@ -57,10 +58,36 @@ function saveProgress(p) {
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(p)); } catch (e) {}
 }
 
-function isZoneUnlocked(zoneId) {
+/* 难度解锁：普通 → 困难（需普通全通）→ 极限（需困难全通） */
+function isDiffUnlocked(diff) {
+  const prog = loadProgress();
+  if (diff === 0) return true;
+  if (diff === 1) return (prog.cleared || []).length >= ZONES.length;
+  if (diff === 2) return (prog.clearedHard || []).length >= ZONES.length;
+  return false;
+}
+
+function diffProgressText(diff) {
+  const prog = loadProgress();
+  if (diff === 1) return '需通关全部普通区域（' + (prog.cleared || []).length + '/' + ZONES.length + '）';
+  if (diff === 2) return '需通关全部困难区域（' + (prog.clearedHard || []).length + '/' + ZONES.length + '）';
+  return '';
+}
+
+/* 区域解锁：同一难度内按顺序，且该难度本身要已解锁 */
+function isZoneUnlocked(zoneId, diff) {
+  if (diff == null) diff = (typeof STATE !== 'undefined' && STATE) ? STATE.diff : 0;
+  if (!isDiffUnlocked(diff)) return false;
+
+  const prog = loadProgress();
   const idx = ZONES.findIndex(z => z.id === zoneId);
-  if (idx <= 0) return true;
-  return loadProgress().cleared.includes(ZONES[idx - 1].id);
+  if (idx < 0) return false;
+  if (idx === 0) return true;
+
+  const list = diff === 0 ? (prog.cleared || [])
+             : diff === 1 ? (prog.clearedHard || [])
+             : (prog.clearedNightmare || []);
+  return list.indexOf(ZONES[idx - 1].id) >= 0;
 }
 
 function isZoneCleared(zoneId) {
@@ -72,8 +99,12 @@ function unlockNextZone(currentId, diffIdx) {
   const idx = ZONES.findIndex(z => z.id === currentId);
   if (idx < 0) return null;
   const p = loadProgress();
-  if (!p.cleared.includes(currentId)) p.cleared.push(currentId);
-  if (diffIdx >= 1 && !p.clearedHard.includes(currentId)) p.clearedHard.push(currentId);
+  const d = diffIdx || 0;
+  const key = d === 0 ? 'cleared' : (d === 1 ? 'clearedHard' : 'clearedNightmare');
+  p[key] = p[key] || [];
+  if (p[key].indexOf(currentId) < 0) p[key].push(currentId);
+  // 兼容老逻辑：困难通关也算普通通过
+  if (d >= 1 && p.cleared.indexOf(currentId) < 0) p.cleared.push(currentId);
   saveProgress(p);
   // 已登录则同步到云端，换设备也能接着玩
   if (typeof SB !== 'undefined' && SB.currentUser && SB.currentUser()) {
@@ -566,8 +597,10 @@ function renderArmory() {
       ' style="border-color:' + q.color + ';box-shadow:0 3px 0 ' + q.dark + '">' +
       '<span class="ai-slot" style="background:' + q.color + '">' + EQUIP.SLOT_NAME[it.slot] + '</span>' +
       '<span class="ai-main">' +
-        '<span class="ai-name" style="color:' + q.color + '">' + q.name + ' · ' + EQUIP.SLOT_NAME[it.slot] + '</span>' +
-        '<span class="ai-affixes">' + it.affixes.map(function (a) { return EQUIP.desc(a); }).join(' · ') + '</span>' +
+        '<span class="ai-name" style="color:' + q.color + '">' +
+          (it.name || (q.name + EQUIP.SLOT_NAME[it.slot])) + '</span>' +
+        '<span class="ai-affixes">' + q.name + ' · ' + EQUIP.SLOT_NAME[it.slot] + ' · ' +
+          it.affixes.map(function (a) { return EQUIP.desc(a); }).join(' · ') + '</span>' +
       '</span>' +
       '<span class="ai-score">' + EQUIP.score(it) + '</span>' +
       '<span class="ai-sell" data-sell="' + it.id + '">卖 ' + sellPrice(it) + '</span>' +
@@ -635,20 +668,35 @@ function openItemDetail(id) {
   if (worn) cmp = '正在穿戴';
   else if (cur) cmp = myScore > curScore ? '比当前强 ' + (myScore - curScore) : '比当前弱 ' + (curScore - myScore);
 
-  document.getElementById('itemTitle').textContent = q.name + ' · ' + EQUIP.SLOT_NAME[it.slot];
+  const dispName = it.name || (q.name + EQUIP.SLOT_NAME[it.slot]);
+  document.getElementById('itemTitle').textContent = dispName;
+
+  // 锻造日期
+  let bornTxt = '';
+  if (it.born) {
+    const d = new Date(it.born);
+    bornTxt = d.getFullYear() + '-' +
+      String(d.getMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getDate()).padStart(2, '0');
+  }
+
   document.getElementById('itemBody').innerHTML =
     '<div class="item-detail" style="border-color:' + q.color + ';box-shadow:0 5px 0 ' + q.dark + '">' +
       '<div class="id-icon">' + (ICON[EQUIP.SLOT_ICON[it.slot]] || '') + '</div>' +
       '<div class="id-head">' +
-        '<span class="id-name" style="color:' + q.color + '">' + q.name + '</span>' +
-        '<span class="id-slot">' + EQUIP.SLOT_NAME[it.slot] + '</span>' +
+        '<span class="id-name" style="color:' + q.color + '">' + dispName + '</span>' +
       '</div>' +
+      '<div class="id-sub">' + q.name + ' · ' + EQUIP.SLOT_NAME[it.slot] + '</div>' +
       '<div class="id-affixes">' +
         it.affixes.map(function (a) { return '<div class="id-affix">' + EQUIP.desc(a) + '</div>'; }).join('') +
       '</div>' +
       '<div class="id-foot">' +
         '<span>战力 <b>' + myScore + '</b></span>' +
         '<span class="id-cmp">' + cmp + '</span>' +
+      '</div>' +
+      '<div class="id-flavor">' +
+        (it.flavor || []).map(function (f) { return '<span>「' + f + '」</span>'; }).join('') +
+        (bornTxt ? '<span class="id-born">锻造于 ' + bornTxt + '</span>' : '') +
       '</div>' +
     '</div>';
 
@@ -764,8 +812,10 @@ function renderShop() {
     return '<div class="shop-item" style="border-color:' + q.color + ';box-shadow:0 3px 0 ' + q.dark + '">' +
       '<span class="ai-slot" style="background:' + q.color + '">' + EQUIP.SLOT_NAME[it.slot] + '</span>' +
       '<span class="si-main">' +
-        '<span class="ai-name" style="color:' + q.color + '">' + q.name + ' · ' + EQUIP.SLOT_NAME[it.slot] + '</span>' +
-        '<span class="ai-affixes">' + it.affixes.map(function (a) { return EQUIP.desc(a); }).join(' · ') + '</span>' +
+        '<span class="ai-name" style="color:' + q.color + '">' +
+          (it.name || (q.name + EQUIP.SLOT_NAME[it.slot])) + '</span>' +
+        '<span class="ai-affixes">' + q.name + ' · ' + EQUIP.SLOT_NAME[it.slot] + ' · ' +
+          it.affixes.map(function (a) { return EQUIP.desc(a); }).join(' · ') + '</span>' +
       '</span>' +
       '<span class="shop-buy' + (poor ? ' poor' : '') + '" data-buy="' + i + '">' + g.price + '</span>' +
       '</div>';
@@ -803,7 +853,7 @@ function buyItem(idx) {
 function renderZones() {
   const box = document.getElementById('zoneList');
   box.innerHTML = ZONES.map(z => {
-    const unlocked = isZoneUnlocked(z.id);
+    const unlocked = isZoneUnlocked(z.id, STATE.diff);
     const cleared = isZoneCleared(z.id);
     const cls = ['zone-item'];
     if (z.id === STATE.zone.id && unlocked) cls.push('on');
@@ -1412,14 +1462,20 @@ function initMenu() {
   };
 
   document.getElementById('btnDiff').onclick = () => {
-    STATE.diff = (STATE.diff + 1) % DIFFS.length;
+    const next = (STATE.diff + 1) % DIFFS.length;
+    if (!isDiffUnlocked(next)) {
+      toast(DIFFS[next].name + ' 未解锁 · ' + diffProgressText(next));
+      return;
+    }
+    STATE.diff = next;
     updateStartButton();
+    renderZones();
     toast(DIFFS[STATE.diff].name);
   };
 
   document.getElementById('btnStart').onclick = () => {
     // 存档异常时兜底：锁定区域退回平原
-    if (!isZoneUnlocked(STATE.zone.id)) {
+    if (!isZoneUnlocked(STATE.zone.id, STATE.diff)) {
       STATE.zone = ZONES[0];
       renderZones();
       updateStartButton();
