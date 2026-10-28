@@ -2114,6 +2114,26 @@ const Game = (function () {
       }
     } catch (e) {}
 
+    // 赛季排名（异步查询，不阻塞结算面板）
+    try {
+      const rankEl = document.getElementById('resRank');
+      if (rankEl) {
+        rankEl.style.display = 'none';
+        if (typeof fetchMyRank === 'function' && typeof SB !== 'undefined' && SB.currentUser()) {
+          fetchMyRank().then(function (r) {
+            if (!r) return;
+            rankEl.style.display = '';
+            if (r.rank) {
+              rankEl.innerHTML = '赛季排名 <b>第 ' + r.rank + ' 名</b>' +
+                (r.rank <= 100 ? ' · 预计奖励：' + rewardForRank(r.rank) : '');
+            } else {
+              rankEl.innerHTML = '本赛季还没上榜 · 继续冲';
+            }
+          }).catch(function () {});
+        }
+      }
+    } catch (e) {}
+
     document.getElementById('result').classList.remove('hidden');
   }
 
