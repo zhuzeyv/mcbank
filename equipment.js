@@ -53,6 +53,56 @@ const EQUIP = (function () {
   const TOTAL_WEIGHT = QUALITY.reduce(function (a, q) { return a + q.weight; }, 0);
 
   // 按权重抽品质；luck（怪物等级）会额外往上抬几档
+  /* ---------- 装备名称与介绍（MC 风格） ---------- */
+  const NAME_PARTS = {
+    low: {
+      pre: ['生锈的', '破旧的', '粗糙的', '普通的', '结实的', '磨损的'],
+      suf: ['护甲', '战具', '器物', '残片']
+    },
+    mid: {
+      pre: ['精工', '银月', '苍狼', '铁誓', '疾风', '赤岩', '霜纹'],
+      suf: ['战甲', '护符', '遗物', '徽记', '之刃']
+    },
+    high: {
+      pre: ['贪婪之主', '虚空', '星陨', '深渊', '龙魂', '碎星', '永夜', '破晓', '噬魂', '寂灭', '万象'],
+      suf: ['契约', '誓约', '遗物', '残响', '印记', '王座', '之证']
+    }
+  };
+
+  // 按品质给介绍文案
+  const FLAVOR = [
+    ['铁匠铺的边角料', '勉强能挡一下'],                      // 0-3
+    ['出自老练工匠之手', '磨损得恰到好处'],                  // 4-7
+    ['远古战场的遗物', '还残留着微弱的魔力'],                // 8-11
+    ['神级领域锻造师作品', '它的重量让人安心'],              // 12-15
+    ['超越凡俗的造物', '凡人难以驾驭', '名字被刻在石碑上']    // 16-19
+  ];
+
+  function flavorTier(qid) {
+    if (qid <= 3) return 0;
+    if (qid <= 7) return 1;
+    if (qid <= 11) return 2;
+    if (qid <= 15) return 3;
+    return 4;
+  }
+
+  function makeName(qid) {
+    const pool = qid <= 5 ? NAME_PARTS.low : (qid <= 11 ? NAME_PARTS.mid : NAME_PARTS.high);
+    const pre = pool.pre[Math.floor(Math.random() * pool.pre.length)];
+    const suf = pool.suf[Math.floor(Math.random() * pool.suf.length)];
+    return pre + suf;
+  }
+
+  function makeFlavor(qid) {
+    const arr = FLAVOR[flavorTier(qid)].slice();
+    // 打乱后取 1~2 条
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
+    return arr.slice(0, 1 + Math.floor(Math.random() * Math.min(2, arr.length)));
+  }
+
   function rollQuality(luck) {
     let r = Math.random() * TOTAL_WEIGHT;
     let pick = QUALITY[0];
@@ -87,7 +137,10 @@ const EQUIP = (function () {
       id: 'e' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36),
       slot: slot,
       quality: q.id,
-      affixes: affixes
+      affixes: affixes,
+      name: makeName(q.id),
+      flavor: makeFlavor(q.id),
+      born: Date.now()
     };
   }
 
@@ -124,7 +177,8 @@ const EQUIP = (function () {
     return Math.round(s * (1 + it.quality * 0.045));
   }
 
-  return { SLOTS, SLOT_NAME, SLOT_ICON, QUALITY, STATS, make, desc, qualityOf, totalBonus, score };
+  return { SLOTS, SLOT_NAME, SLOT_ICON, QUALITY, STATS, make, desc, qualityOf, totalBonus, score,
+           makeName, makeFlavor, flavorTier };
 })();
 
 window.EQUIP = EQUIP;
