@@ -230,7 +230,9 @@ const Game = (function () {
     e.hp -= dmg;
     // 吸血（受每秒预算限制）
     if (S.player.lifesteal > 0 && dmg > 0) {
-      const want = dmg * S.player.lifesteal;
+      // 无尽模式吸血效果减半（否则高 DPS 玩家永远能站撸）
+      const lsEff = S.zone.endless ? 0.5 : 1;
+      const want = dmg * S.player.lifesteal * lsEff;
       const heal = Math.min(want, S.player.healBudget || 0);
       if (heal >= 0.5) {
         S.player.hp = Math.min(S.player.maxHp, S.player.hp + heal);
@@ -541,7 +543,7 @@ const Game = (function () {
     }
     // 吸血预算：每秒最多回 3.5% 最大生命，最多攒 2 秒的量
     // （防止高 DPS 玩家靠低吸血也能无限回血）
-    const healCap = p.maxHp * 0.035;
+    const healCap = p.maxHp * 0.025;
     p.healBudget = Math.min(healCap * 2, (p.healBudget || 0) + healCap * dt);
 
     // ---- 摄像机（等距：玩家恒在屏幕中心）----
@@ -891,15 +893,22 @@ const Game = (function () {
     const body = document.getElementById('chestBody');
     if (!panel || !body) return;
     const q = EQUIP.qualityOf(it.quality);
+    const dispName = it.name || (q.name + EQUIP.SLOT_NAME[it.slot]);
     body.innerHTML =
       '<div class="chest-item" style="border-color:' + q.color + ';box-shadow:0 6px 0 ' + q.dark + ', 0 12px 32px rgba(0,0,0,.5)">' +
-        '<div class="ci-name" style="color:' + q.color + '">' + q.name + ' · ' + EQUIP.SLOT_NAME[it.slot] + '</div>' +
+        '<div class="ci-name" style="color:' + q.color + '">' + dispName + '</div>' +
+        '<div class="ci-sub">' + q.name + ' · ' + EQUIP.SLOT_NAME[it.slot] + '</div>' +
         '<div class="ci-affixes">' +
           it.affixes.map(function (a) { return '<div>' + EQUIP.desc(a) + '</div>'; }).join('') +
         '</div>' +
         '<div style="margin-top:9px;font-size:10.5px;font-weight:700;color:' + (isNew ? '#237a35' : '#8a3030') + '">' +
           (isNew ? '已装备（优于当前）' : '未装备（不如当前这件）') +
         '</div>' +
+        ((it.flavor && it.flavor.length)
+          ? '<div class="ci-flavor">' +
+              it.flavor.map(function (f) { return '<span>「' + f + '」</span>'; }).join('') +
+            '</div>'
+          : '') +
       '</div>';
     panel.classList.remove('hidden');
     S.paused = true;
