@@ -895,7 +895,7 @@ const Game = (function () {
       maxHp: 0,
       spd: bd.spd,
       dmg: bd.dmg * S.diff.dmg,
-      xp: bd.xp,
+      xp: bd.xp * S.diff.xp,
       skills: bd.skills,
       atkCd: 1.5, skillCd: 2.5,
       hitFlash: 0, slowT: 0, kx: 0,
@@ -1018,7 +1018,7 @@ const Game = (function () {
       hp, maxHp: hp,
       spd: base.spd,
       dmg: base.dmg * S.diff.dmg * 1.10,   // 玩家变强了，怪也得跟上
-      xp: base.xp,
+      xp: base.xp * S.diff.xp,   // 难度经验倍率
       ranged: !!base.ranged,
       atkCdBase: base.atkCd || 2.2,
       shootRange: base.shootRange || 420,
