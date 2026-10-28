@@ -953,7 +953,7 @@ body.is-touch .hud-right{margin-right:48px;}
   font-size:15px;font-weight:900;color:#fff;letter-spacing:.1em;
   text-shadow:0 2px 0 var(--red-d);
 }
-.modal-body{padding:13px 14px 0;overflow:hidden;min-height:0;display:flex;flex-direction:column;}
+.modal-body{padding:13px 14px 0;overflow:hidden;flex:1 1 auto;min-height:0;display:flex;flex-direction:column;}
 .modal-tip{font-size:12px;color:var(--text-dim);font-weight:700;margin-bottom:10px;}
 .modal-input{
   width:100%;margin-bottom:8px;padding:9px 11px;
@@ -1016,6 +1016,8 @@ body.is-touch .hud-right{margin-right:48px;}
 
 /* ==================== 装备槽（菜单） ==================== */
 .equip-slot{position:relative;cursor:default;}
+.equip-slot.filled{cursor:pointer;}
+.equip-slot.filled:active{transform:translateY(2px);}
 .equip-slot .es-ic{width:100%;height:100%;display:flex;align-items:center;justify-content:center;}
 .equip-slot .es-name{
   font-size:9px;font-weight:700;color:var(--text-mute);
@@ -1034,10 +1036,11 @@ body.is-touch .hud-right{margin-right:48px;}
 /* ==================== 军械库 ==================== */
 .modal-box.wide{width:min(560px,94vw);}
 .armory-list{
-  max-height:min(44vh,340px);overflow-y:scroll;
+  flex:1 1 auto;min-height:120px;max-height:none;
+  overflow-y:scroll;
   -webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;
   display:flex;flex-direction:column;gap:6px;
-  padding-right:4px;margin-bottom:4px;
+  padding-right:8px;margin-bottom:4px;
 }
 .armory-list::-webkit-scrollbar{width:10px;}
 .armory-list::-webkit-scrollbar-track{background:var(--paper2);border-radius:5px;}
@@ -1100,9 +1103,10 @@ body.is-touch .hud-right{margin-right:48px;}
 .ai-sell:hover{background:var(--yellow);}
 
 .shop-list{
-  max-height:min(44vh,340px);overflow-y:scroll;
+  flex:1 1 auto;min-height:120px;max-height:none;
+  overflow-y:scroll;
   -webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;
-  display:flex;flex-direction:column;gap:7px;padding-right:4px;
+  display:flex;flex-direction:column;gap:7px;padding-right:8px;
 }
 .shop-list::-webkit-scrollbar{width:10px;}
 .shop-list::-webkit-scrollbar-track{background:var(--paper2);border-radius:5px;}
@@ -1162,7 +1166,7 @@ body.is-touch .hud-right{margin-right:48px;}
   .equip-slots{gap:4px;}
   .equip-slot .es-name{font-size:8px;}
   .equip-slot .es-q{font-size:7px;}
-  .armory-list,.shop-list{max-height:min(50vh,400px);}
+  .armory-list,.shop-list{min-height:140px;}
 }
 
 /* ==================== 装备详情 ==================== */
