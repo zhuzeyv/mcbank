@@ -1130,7 +1130,7 @@ async function renderRank() {
         <div class="rk-av">${(r.trainer_name || '?').slice(0, 1)}</div>
         <div class="rk-main">
           <div class="rk-name">${r.trainer_name || '匿名'}</div>
-          <div class="rk-meta">${r.level || 0} 级 · ${r.kills || 0} 击杀</div>
+          <div class="rk-meta">${r.level || 0} 级 · ${r.kills || 0} 击杀${r.gameId ? ' · <b style="color:#237a35">ID: ' + r.gameId + '</b>' : ''}</div>
         </div>
         <div class="rk-score">${fmtScore(r.score)}</div>
       </div>`;
@@ -1209,17 +1209,69 @@ function refreshAccountBar() {
   const btn = document.getElementById('btnAccount');
   if (!nameEl) return;
   if (u) {
+    const gid = (typeof SB !== 'undefined' && SB.currentGameId) ? SB.currentGameId() : '';
     nameEl.textContent = u.name;
-    subEl.textContent = '已绑定 · 成绩会上榜';
+    subEl.textContent = gid ? ('游戏ID：' + gid) : '点此绑定游戏 ID';
+    subEl.style.color = gid ? '#237a35' : '#a82522';
+    subEl.style.cursor = 'pointer';
+    subEl.style.textDecoration = 'underline';
+    subEl.onclick = function (ev) { ev.stopPropagation(); openGameIdModal(); };
     avatarEl.textContent = (u.name || '?').slice(0, 1);
     btn.textContent = '退出登录';
     btn.onclick = () => { SB.signOut(); refreshAccountBar(); toast('已退出登录'); };
   } else {
+    subEl.style.cursor = 'default';
+    subEl.style.textDecoration = 'none';
+    subEl.style.color = '';
+    subEl.onclick = null;
     nameEl.textContent = '游客';
     subEl.textContent = '进度仅保存在本机';
     avatarEl.textContent = '?';
     btn.textContent = '保存到账号';
     btn.onclick = () => openAccountModal('signup');
+  }
+}
+
+/* ---------- 绑定游戏 ID ---------- */
+function openGameIdModal() {
+  if (typeof SB === 'undefined' || !SB.currentUser()) {
+    toast('请先登录账号');
+    return;
+  }
+  const inp = document.getElementById('gameIdInput');
+  inp.value = (SB.currentGameId && SB.currentGameId()) || '';
+  document.getElementById('gameIdErr').textContent = '';
+  document.getElementById('gameIdModal').classList.remove('hidden');
+  setTimeout(function () { inp.focus(); }, 60);
+}
+
+function closeGameIdModal() {
+  document.getElementById('gameIdModal').classList.add('hidden');
+}
+
+async function saveGameId() {
+  const errEl = document.getElementById('gameIdErr');
+  const val = document.getElementById('gameIdInput').value.trim();
+  errEl.textContent = '';
+
+  if (val && !/^[A-Za-z0-9_]{3,16}$/.test(val)) {
+    errEl.textContent = '游戏 ID 只能包含字母、数字、下划线，长度 3-16';
+    return;
+  }
+
+  const btn = document.getElementById('btnGameIdSave');
+  btn.disabled = true;
+  btn.textContent = '保存中…';
+  try {
+    await SB.bindGameId(val);
+    closeGameIdModal();
+    refreshAccountBar();
+    toast(val ? ('已绑定游戏 ID：' + val) : '已解绑游戏 ID');
+  } catch (e) {
+    errEl.textContent = e.message || '保存失败';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '保存';
   }
 }
 
@@ -1453,6 +1505,11 @@ function initMenu() {
   // 账号栏与弹窗
   refreshAccountBar();
   document.getElementById('btnAccCancel').onclick = closeAccountModal;
+  document.getElementById('btnGameIdCancel').onclick = closeGameIdModal;
+  document.getElementById('btnGameIdSave').onclick = saveGameId;
+  document.getElementById('gameIdModal').onclick = e => {
+    if (e.target.id === 'gameIdModal') closeGameIdModal();
+  };
   document.getElementById('btnAccSubmit').onclick = submitAccount;
   document.getElementById('btnAccSwitch').onclick = () => {
     openAccountModal(accMode === 'signup' ? 'signin' : 'signup');
