@@ -181,6 +181,8 @@ const Game = (function () {
       bossGrace: 0,
       bossCount: 0,
       nextBossAt: 0,
+      empowerLevel: 0,
+      empowerAt: 60,
       eliteTimer: 10,
       shake: 0,
       hurtFlash: 0,
@@ -581,6 +583,15 @@ const Game = (function () {
           if (S.enemies.length >= capW) break;
           spawnEnemy(true);
         }
+      }
+
+      // 深渊强化：无尽模式每 60 秒跳一档
+      if (S.zone.endless && S.time >= S.empowerAt) {
+        S.empowerLevel = (S.empowerLevel || 0) + 1;
+        S.empowerAt += 60;
+        addText(p.x, p.y - 80, '深渊强化 ×' + S.empowerLevel, '#ff6a6a', 20);
+        S.shake = Math.max(S.shake, 8);
+        if (typeof SFX !== 'undefined') SFX.boss();
       }
 
       // 精英怪：每 22 秒一只（比普通强、比 BOSS 弱）
@@ -1041,7 +1052,10 @@ const Game = (function () {
     if (!base) return null;
     scale = scale || 1;
     let tScale = 1 + S.time / 148 + Math.pow(Math.max(0, S.time - 300) / 500, 1.6) * 0.6;
-    if (S.zone.endless) tScale *= 1.35;   // 无尽模式成长更快   // 玩家有装备/称号/天赋后变强，怪也得跟上
+    if (S.zone.endless) tScale *= 1.35;   // 无尽模式成长更快
+    // 深渊强化：每 60 秒跳一档，跟着玩家的等级和装备走
+    const emp = 1 + (S.empowerLevel || 0) * 0.13;
+    tScale *= emp;   // 玩家有装备/称号/天赋后变强，怪也得跟上
     const hp = base.hp * S.zone.hpMul * S.diff.hp * tScale * scale;
     return {
       x, y,
@@ -1050,7 +1064,7 @@ const Game = (function () {
       skin: base.skin,
       hp, maxHp: hp,
       spd: base.spd,
-      dmg: base.dmg * S.diff.dmg * 1.10 * (S.zone.dmgMul || 1),   // 区域伤害倍率（无尽模式更狠）
+      dmg: base.dmg * S.diff.dmg * 1.10 * (S.zone.dmgMul || 1) * (1 + (S.empowerLevel || 0) * 0.08),
       xp: base.xp * S.diff.xp,   // 难度经验倍率
       ranged: !!base.ranged,
       atkCdBase: base.atkCd || 2.2,
