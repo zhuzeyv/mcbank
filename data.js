@@ -542,56 +542,56 @@ const ZONES = [
     desc: '开阔的草方块与零星橡木。僵尸和骷髅在夕阳下慢慢游荡，最适合练手。',
     theme: { g1: '#5d8a3c', g2: '#4e7832', g3: '#6b9a46', dirt: '#7a5b3a', fog: 'rgba(120,150,90,.05)' },
     mobs: ['zombie', 'skeleton'],
-    hpMul: 1.0, spawnMul: 1.0, time: 120
+    hpMul: 1.25, dmgMul: 1.05, spawnMul: 1.05, time: 120
   },
   {
     id: 'forest', name: '森林', lv: '3 - 6', boss: '骷髅领主',
     desc: '密不透光的树冠下，箭矢从每一道缝隙里飞来。蜘蛛在树上织网。',
     theme: { g1: '#3f6b2e', g2: '#33582a', g3: '#4a7a36', dirt: '#6b4f32', fog: 'rgba(60,110,60,.07)' },
     mobs: ['zombie', 'skeleton', 'spider'],
-    hpMul: 1.25, spawnMul: 1.1, time: 130
+    hpMul: 1.75, dmgMul: 1.15, spawnMul: 1.15, time: 130
   },
   {
     id: 'desert', name: '沙漠', lv: '6 - 9', boss: '尸壳法老',
     desc: '沙子底下埋着不该醒来的东西。白天晒，晚上冷，尸壳不需要呼吸。',
     theme: { g1: '#c8b070', g2: '#b8a060', g3: '#d8c080', dirt: '#a88a50', fog: 'rgba(200,170,110,.06)' },
     mobs: ['husk', 'skeleton', 'creeper'],
-    hpMul: 1.5, spawnMul: 1.2, time: 140
+    hpMul: 2.35, dmgMul: 1.25, spawnMul: 1.25, time: 140
   },
   {
     id: 'caves', name: '洞穴', lv: '9 - 12', boss: '蜘蛛母巢',
     desc: '火把只照亮三步远。头顶有东西在爬，你听见八条腿的声音。',
     theme: { g1: '#4a4640', g2: '#3a3630', g3: '#57524a', dirt: '#2e2a24', fog: 'rgba(20,20,20,.18)' },
     mobs: ['spider', 'zombie', 'creeper'],
-    hpMul: 1.85, spawnMul: 1.3, time: 150
+    hpMul: 3.0, dmgMul: 1.35, spawnMul: 1.4, time: 150
   },
   {
     id: 'swamp', name: '沼泽', lv: '12 - 15', boss: '史莱姆巨兽',
     desc: '水是温的，雾是甜的。史莱姆从泥里分裂出来，越砍越多。',
     theme: { g1: '#465a3a', g2: '#3a4a30', g3: '#526840', dirt: '#3a3a28', fog: 'rgba(80,100,60,.1)' },
     mobs: ['slime', 'spider', 'witch'],
-    hpMul: 2.2, spawnMul: 1.4, time: 160
+    hpMul: 3.7, dmgMul: 1.45, spawnMul: 1.55, time: 160
   },
   {
     id: 'nether', name: '下界', lv: '15 - 18', boss: '烈焰人领主',
     desc: '空气烫得能点着眉毛。恶魂的哭声从远处飘来，脚下是熔岩海。',
     theme: { g1: '#7a2a20', g2: '#5e1e18', g3: '#8a3428', dirt: '#3e1410', fog: 'rgba(180,60,30,.09)' },
     mobs: ['blaze', 'zombie', 'wither_skeleton'],
-    hpMul: 2.7, spawnMul: 1.55, time: 170
+    hpMul: 4.5, dmgMul: 1.55, spawnMul: 1.7, time: 170
   },
   {
     id: 'end', name: '末地', lv: '18 - 22', boss: '末影龙',
     desc: '虚空在脚下张开。末影人不会主动攻击——直到你抬头看它们。',
     theme: { g1: '#2a2438', g2: '#1e1a2a', g3: '#332c44', dirt: '#14101e', fog: 'rgba(120,80,200,.07)' },
     mobs: ['enderman', 'blaze', 'skeleton'],
-    hpMul: 3.3, spawnMul: 1.7, time: 180
+    hpMul: 5.1, dmgMul: 1.65, spawnMul: 1.85, time: 180
   },
   {
     id: 'deepdark', name: '深暗之域', lv: '22 - 30', boss: '监守者',
     desc: '不要出声。这里的方块会听见你的脚步，然后一切都结束了。',
     theme: { g1: '#1c2a2c', g2: '#141e20', g3: '#263638', dirt: '#0e1618', fog: 'rgba(40,120,120,.09)' },
     mobs: ['warden_spawn', 'enderman', 'wither_skeleton'],
-    hpMul: 4.0, spawnMul: 1.85, time: 190
+    hpMul: 5.8, dmgMul: 1.75, spawnMul: 2.0, time: 190
   },
   {
     id: 'endless', name: '无尽深渊', lv: '∞', boss: '轮回者',
