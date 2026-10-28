@@ -278,6 +278,8 @@ const Game = (function () {
         S.bossSpawned = false;
         S.nextBossAt = S.time + 150;
         S.bossGrace = 3.0;
+        // 血条要手动隐藏：普通模式靠 win() 收，无尽模式不走 win()
+        document.getElementById('bossBar').classList.add('hidden');
         addText(p.x, p.y - 70, '首领倒下 · 下一个更凶', '#ffd85c', 17);
         if (typeof SFX !== 'undefined') SFX.levelup();
         return;
