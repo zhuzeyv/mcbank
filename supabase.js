@@ -234,6 +234,14 @@ const SB = (function () {
     });
     // 档案缺失时补建（换设备登录 / 历史数据被清理后都能拿到进度）
     await ensureProfile(nm);
+    // 顺便把绑定的游戏 ID 拉下来
+    try {
+      const prof = await loadCloudProgress();
+      if (prof && prof.game_id) {
+        session.user.gameId = prof.game_id;
+        saveSession(session);
+      }
+    } catch (e) {}
     return session.user;
   }
 
@@ -255,7 +263,7 @@ const SB = (function () {
     if (!ready() || !session) return null;
     try {
       const rows = await api(
-        `/rest/v1/profiles?id=eq.${session.user.id}&select=cleared,cleared_hard,stats,equipment,armory,gold,talents`
+        `/rest/v1/profiles?id=eq.${session.user.id}&select=cleared,cleared_hard,stats,equipment,armory,gold,talents,game_id`
       );
       if (Array.isArray(rows) && rows.length) return rows[0];
     } catch (e) {}
@@ -281,6 +289,26 @@ const SB = (function () {
     } catch (e) { return false; }
   }
 
+  /* ---------- 游戏 ID 绑定 ---------- */
+  async function bindGameId(gameId) {
+    if (!ready()) throw new Error('还没连接数据库');
+    if (!session) throw new Error('请先登录账号，再绑定游戏 ID');
+    const gid = (gameId || '').trim();
+    await api('/rest/v1/profiles?id=eq.' + session.user.id, {
+      method: 'PATCH',
+      body: JSON.stringify({ game_id: gid || null })
+    });
+    if (session && session.user) {
+      session.user.gameId = gid || null;
+      saveSession(session);
+    }
+    return true;
+  }
+
+  function currentGameId() {
+    return session && session.user ? (session.user.gameId || '') : '';
+  }
+
   /* ---------- 排行榜 ---------- */
   async function getLeaderboard(seasonId, limit) {
     limit = limit || 100;
@@ -292,6 +320,17 @@ const SB = (function () {
       `&season=eq.${seasonId}&order=score.desc&limit=${Math.min(1000, limit * 6)}`
     );
     const rows = Array.isArray(raw) ? raw : [];
+
+    // 拉一份 训练家名 → 游戏ID 的映射（profiles 表）
+    let idMap = {};
+    try {
+      const profs = await api('/rest/v1/profiles?select=trainer_name,game_id&game_id=not.is.null');
+      if (Array.isArray(profs)) {
+        profs.forEach(function (p) {
+          if (p && p.game_id) idMap[(p.trainer_name || '').trim().toLowerCase()] = p.game_id;
+        });
+      }
+    } catch (e) { /* 拉不到就算了，不影响榜单 */ }
 
     const best = new Map();
     for (const r of rows) {
@@ -305,7 +344,12 @@ const SB = (function () {
     }
     return Array.from(best.values())
       .sort((a, b) => (b.score || 0) - (a.score || 0))
-      .slice(0, limit);
+      .slice(0, limit)
+      .map(function (r) {
+        const nm = (r.trainer_name || '').trim().toLowerCase();
+        r.gameId = idMap[nm] || '';
+        return r;
+      });
   }
 
   async function submitRun(run) {
@@ -359,6 +403,7 @@ const SB = (function () {
     CONFIG, ready, currentSeason, seasonCountdown,
     currentUser, signUp, signIn, signOut,
     loadCloudProgress, saveCloudProgress,
+    bindGameId, currentGameId,
     getLeaderboard, submitRun,
     isMock: () => !ready(),
     warmup
