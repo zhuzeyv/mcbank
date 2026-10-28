@@ -937,7 +937,7 @@ const Game = (function () {
       hp: 46 * bd.hpMul * (1 + S.zoneIdx * 0.35) * S.diff.hp * (1 + (S.bossCount || 0) * 0.55),
       maxHp: 0,
       spd: bd.spd,
-      dmg: bd.dmg * S.diff.dmg,
+      dmg: bd.dmg * S.diff.dmg * (1 + (S.bossCount || 0) * 0.30),
       xp: bd.xp * S.diff.xp,
       skills: bd.skills,
       atkCd: 1.5, skillCd: 2.5,
@@ -2252,6 +2252,11 @@ const Game = (function () {
     document.getElementById('btnBack').onclick = toMenu;
     document.getElementById('btnResume').onclick = () => togglePause();
     document.getElementById('btnQuit').onclick = toMenu;
+    document.getElementById('btnSuicide').onclick = () => {
+      document.getElementById('pausePanel').classList.add('hidden');
+      if (S) S.paused = false;
+      if (S && !S.over) { S.player.hp = 0; lose(); }
+    };
     document.getElementById('btnPauseMobile').onclick = () => togglePause();
     bindJoystick();
     window.addEventListener('resize', () => { if (cv) resize(); detectTouch(); });
@@ -2264,7 +2269,8 @@ const Game = (function () {
     start, toMenu,
     debug: () => S,
     spawnBoss: () => spawnBoss(),
-    debugHurtBoss: d => { if (S && S.boss) hurtEnemy(S.boss, d); }
+    debugHurtBoss: d => { if (S && S.boss) hurtEnemy(S.boss, d); },
+    suicide: () => { if (S && !S.over) { S.player.hp = 0; lose(); } }
   };
 
 })();
