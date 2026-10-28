@@ -797,8 +797,8 @@ const BOSSES = {
 /* ---------- 难度 ---------- */
 const DIFFS = [
   { name: '普通难度', hp: 1.0, dmg: 1.0, spawn: 1.0, xp: 1.0 },
-  { name: '困难难度', hp: 1.5, dmg: 1.35, spawn: 1.3, xp: 1.15 },
-  { name: '极限难度', hp: 2.2, dmg: 1.8, spawn: 1.6, xp: 1.35 }
+  { name: '困难难度', hp: 2.2, dmg: 1.6, spawn: 1.5, xp: 1.8 },
+  { name: '极限难度', hp: 4.5, dmg: 2.6, spawn: 2.2, xp: 3.5 }
 ];
 
 /* ---------- 名字池 ---------- */
