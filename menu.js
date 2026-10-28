@@ -140,31 +140,98 @@ const ACHIEVEMENTS = [
 ];
 
 /* ---------- MC 小人绘制（菜单立绘 + 游戏内共用） ---------- */
+/* ---------- 精细像素小人（16×24） ---------- */
+// H=头发 S=皮肤 E=眼睛 M=嘴 B=衣服 G=扣子 L=裤子 D=靴子
+const BODY_PX = [
+  '................',
+  '.....HHHHHH.....',
+  '....HHHHHHHH....',
+  '....HHHHHHHH....',
+  '....HSSSSSSH....',
+  '....SSSSSSSS....',
+  '....SEESSEES....',
+  '....SSSSSSSS....',
+  '....SSSMMSSS....',
+  '.....SSSSSS.....',
+  '......SSSS......',
+  '....BBBBBBBB....',
+  '...BBBBBBBBBB...',
+  '...BBBGGBBBBB...',
+  '...BBBBBBBBBB...',
+  '...BBBBBBBBBB...',
+  '....BBBBBBBB....',
+  '....LLLLLLLL....',
+  '....LLL..LLL....',
+  '....LLL..LLL....',
+  '....LLL..LLL....',
+  '....LLL..LLL....',
+  '....LLL..LLL....',
+  '...DDDD..DDDD...'
+];
+
+const BODY_W = 16, BODY_H = 24;
+const _bodyCache = {};
+
+function bodyPixelColor(ch, skin) {
+  switch (ch) {
+    case 'H': return skin.hair || '#3a2a18';
+    case 'S': return skin.head || '#d2a578';
+    case 'E': return skin.eye || '#1a1a1a';
+    case 'M': return skin.mouth || '#9a5545';
+    case 'B': return skin.body || '#2fa8a8';
+    case 'G': return skin.bodyLight || '#ffd85c';
+    case 'L': return skin.leg || '#3b3b8f';
+    case 'D': return skin.legDark || '#2a2a3a';
+    default: return null;
+  }
+}
+
+/* 把身体预渲染成一张小 canvas 缓存起来（不然每帧画 300+ 个方块会卡死） */
+function getBodyCanvas(skin, key) {
+  if (_bodyCache[key]) return _bodyCache[key];
+  const c = document.createElement('canvas');
+  c.width = BODY_W;
+  c.height = BODY_H;
+  const g2 = c.getContext('2d');
+  for (let y = 0; y < BODY_H; y++) {
+    const row = BODY_PX[y];
+    for (let x = 0; x < BODY_W; x++) {
+      const ch = row[x];
+      if (ch === '.') continue;
+      const col = bodyPixelColor(ch, skin);
+      if (!col) continue;
+      g2.fillStyle = col;
+      g2.fillRect(x, y, 1, 1);
+    }
+  }
+  // 描边：先在底层画一圈放大的深色，再盖上正常身体（只露出 1px 边缘）
+  const out = document.createElement('canvas');
+  out.width = BODY_W + 2;
+  out.height = BODY_H + 2;
+  const g3 = out.getContext('2d');
+  g3.fillStyle = '#1a1424';
+  for (let y = 0; y < BODY_H; y++) {
+    for (let x = 0; x < BODY_W; x++) {
+      if (BODY_PX[y][x] === '.') continue;
+      g3.fillRect(x, y, 3, 3);
+    }
+  }
+  g3.drawImage(c, 1, 1);
+  _bodyCache[key] = out;
+  return out;
+}
+
 function drawMCFigure(g, cx, footY, unit, skin, opt) {
   opt = opt || {};
   const flip = opt.flip ? -1 : 1;
   const alpha = opt.alpha == null ? 1 : opt.alpha;
-  const U = unit;
-  const OUT = '#1a1424';
+  const U = unit * (32 / BODY_H);   // 保持和旧模型一样的身高
+  const key = (skin.body || '') + '|' + (skin.hair || '') + '|' + (skin.head || '');
 
   g.save();
   g.globalAlpha = alpha;
   g.translate(cx, footY);
   g.scale(flip, 1);
-
-  const R = (x, y, w, h, c) => {
-    g.fillStyle = c;
-    g.fillRect(Math.round(x * U), Math.round(y * U), Math.ceil(w * U), Math.ceil(h * U));
-  };
-  // 带描边的部件
-  const RB = (x, y, w, h, c) => {
-    g.fillStyle = OUT;
-    g.fillRect(Math.round((x - 0.28) * U), Math.round((y - 0.28) * U),
-      Math.ceil((w + 0.56) * U), Math.ceil((h + 0.56) * U));
-    R(x, y, w, h, c);
-  };
-
-  const s = skin;
 
   if (opt.shadow !== false) {
     g.globalAlpha = alpha * 0.3;
@@ -177,40 +244,26 @@ function drawMCFigure(g, cx, footY, unit, skin, opt) {
 
   const swing = opt.swing || 0;
   const bob = opt.bob || 0;
+  const bodyY = Math.round((bob - BODY_H - 1) * U);
 
-  // ---- 腿 ----
-  RB(-4, -12 + bob, 3.5, 12, s.leg);
-  RB(0.5, -12 + bob, 3.5, 12, s.leg);
-  R(-4, -2 + bob, 3.5, 2, s.legDark || '#2a2a3a');
-  R(0.5, -2 + bob, 3.5, 2, s.legDark || '#2a2a3a');
+  // 手臂（画在身体后面，可摆动）
+  const armY = -18 * U + bob * U + swing * 2 * U;
+  g.fillStyle = skin.arm || skin.head || '#d2a578';
+  g.fillRect(Math.round(-8.5 * U), Math.round(armY), Math.ceil(2.2 * U), Math.ceil(9 * U));
+  g.fillRect(Math.round(6.3 * U), Math.round(armY), Math.ceil(2.2 * U), Math.ceil(9 * U));
+  // 袖口
+  g.fillStyle = skin.body || '#2fa8a8';
+  g.fillRect(Math.round(-8.5 * U), Math.round(armY), Math.ceil(2.2 * U), Math.ceil(3 * U));
+  g.fillRect(Math.round(6.3 * U), Math.round(armY), Math.ceil(2.2 * U), Math.ceil(3 * U));
 
-  // ---- 身体 ----
-  RB(-4, -24 + bob, 8, 12, s.body);
-  R(-4, -14.5 + bob, 8, 2, s.bodyDark || s.body);
-  // 衣领
-  R(-4, -24 + bob, 8, 1, s.bodyLight || s.body);
+  // 身体（预渲染位图）
+  const img = getBodyCanvas(skin, key);
+  g.imageSmoothingEnabled = false;
+  g.drawImage(img, Math.round(-(BODY_W / 2 + 1) * U), bodyY,
+    Math.ceil(img.width * U), Math.ceil(img.height * U));
 
-  // ---- 手臂 ----
-  const armY = -24 + bob + swing * 2;
-  RB(-8, armY, 4, 12, s.arm);
-  RB(4, armY, 4, 12, s.arm);
-  R(-8, armY + 9.4, 4, 2.6, s.hand || s.head);
-  R(4, armY + 9.4, 4, 2.6, s.hand || s.head);
-
-  // ---- 头 ----
-  RB(-4, -32 + bob, 8, 8, s.head);
-  // 头发
-  R(-4, -32 + bob, 8, 3, s.hair || s.head);
-  R(-4, -32 + bob, 1.2, 6, s.hair || s.head);
-  R(2.8, -32 + bob, 1.2, 6, s.hair || s.head);
-  // 眼睛
-  R(-3, -28.5 + bob, 1.2, 1.2, s.eye || '#1a1a1a');
-  R(1, -28.5 + bob, 1.2, 1.2, s.eye || '#1a1a1a');
-  // 嘴
-  R(-1, -26.2 + bob, 2, 0.7, s.eye || '#1a1a1a');
-
-  // ---- 手持武器 ----
-  if (s.weapon) drawHeldItem(g, s.weapon, U, armY, bob);
+  // 武器
+  if (skin.weapon) drawHeldItem(g, skin.weapon, U * 1.35, armY / U / 1.35 + 2, 0);
 
   g.restore();
 }
