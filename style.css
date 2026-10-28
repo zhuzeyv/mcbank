@@ -1320,3 +1320,42 @@ body.is-touch .hud-right{margin-right:48px;}
   box-shadow:0 4px 0 var(--red-d);
   text-shadow:0 2px 0 var(--red-d);
 }
+
+/* ==================== 属性面板 ==================== */
+.stats-entry{
+  display:block;width:100%;margin:6px 0 8px;
+  padding:7px 10px;border-radius:3px;
+  background:var(--paper2);border:2px solid var(--ink);
+  box-shadow:0 3px 0 var(--ink2);
+  font-size:12px;font-weight:900;color:var(--ink);
+  cursor:pointer;
+}
+.stats-entry:active{transform:translateY(3px);box-shadow:none;}
+
+.stats-list{
+  display:flex;flex-direction:column;gap:5px;
+  max-height:min(60vh,480px);overflow-y:scroll;
+  -webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;
+  padding-right:8px;margin-bottom:6px;
+}
+.stats-list::-webkit-scrollbar{width:9px;}
+.stats-list::-webkit-scrollbar-track{background:var(--paper2);border-radius:5px;}
+.stats-list::-webkit-scrollbar-thumb{background:var(--ink2);border-radius:5px;}
+.stats-row{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:6px 10px;border-radius:3px;
+  background:var(--paper2);border:2px solid rgba(27,20,36,.15);
+  flex-shrink:0;
+}
+.stats-row .sk{font-size:12px;font-weight:700;color:var(--text-dim);}
+.stats-row .sv{
+  font-size:14px;font-weight:900;color:var(--ink);
+  font-family:"Courier New",monospace;
+}
+.stats-row.hl{background:#fff6d0;border-color:var(--ink);}
+.stats-sec{
+  font-size:11px;font-weight:900;color:var(--ink);
+  letter-spacing:.12em;margin:6px 0 2px;text-align:center;
+  padding-top:6px;border-top:2px dashed rgba(27,20,36,.18);
+}
+.stats-sec:first-child{border-top:none;padding-top:0;margin-top:0;}
