@@ -1263,3 +1263,53 @@ body.is-touch .hud-right{margin-right:48px;}
 .id-flavor .id-born{
   font-style:normal;color:var(--text-mute);font-size:10px;margin-top:2px;
 }
+
+/* ==================== 赛季奖励说明 ==================== */
+.season-head{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:8px 12px;margin-bottom:10px;
+  background:var(--yellow);border:var(--bd2) solid var(--ink);border-radius:3px;
+  box-shadow:0 3px 0 var(--yellow-d);
+}
+.sh-season{font-size:15px;font-weight:900;color:var(--ink);}
+.sh-cd{font-size:11px;font-weight:700;color:#7a5a10;font-family:"Courier New",monospace;}
+.season-tiers{
+  display:grid;grid-template-columns:repeat(2,1fr);gap:7px;
+  margin-bottom:12px;
+}
+.st-item{
+  padding:7px 10px;border-radius:3px;
+  border:var(--bd2) solid var(--ink);background:var(--paper2);
+  box-shadow:0 3px 0 var(--ink2);
+}
+.st-item b{display:block;font-size:12.5px;color:var(--ink);margin-bottom:2px;}
+.st-item span{font-size:10.5px;color:var(--text-dim);font-weight:700;}
+.st-item.t1{background:#ffe9a8;}
+.st-item.t2{background:#e6e6f0;}
+.st-item.t3{background:#f0dcc0;}
+.season-rule{
+  border-top:2px dashed rgba(27,20,36,.18);padding-top:9px;
+}
+.season-rule p{
+  font-size:11px;line-height:1.7;color:var(--text-dim);font-weight:700;
+  margin:0 0 4px;padding-left:11px;position:relative;
+}
+.season-rule p::before{
+  content:'·';position:absolute;left:2px;color:var(--ink);font-weight:900;
+}
+.season-rule b{color:var(--ink);}
+.rank-reward-link{
+  margin-left:auto;font-size:10.5px;font-weight:900;color:var(--blue);
+  text-decoration:underline;cursor:pointer;
+}
+
+/* ==================== 结算赛季排名 ==================== */
+.res-rank{
+  width:min(440px,88vw);
+  margin-bottom:14px;padding:8px 14px;
+  background:var(--yellow);
+  border:var(--bd2) solid var(--ink);border-radius:4px;
+  box-shadow:0 4px 0 var(--yellow-d);
+  font-size:12px;font-weight:700;color:#7a5a10;text-align:center;
+}
+.res-rank b{color:var(--ink);font-size:14px;}
