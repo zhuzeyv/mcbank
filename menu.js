@@ -1098,6 +1098,19 @@ function talentBonus() {
   return b;
 }
 
+/* 刷新大厅「天赋」按钮上的点数 */
+function refreshTalentCount() {
+  const el = document.getElementById('talentCount');
+  if (!el) return;
+  const prog = loadProgress();
+  const t = prog.talents || {};
+  let used = 0;
+  TALENTS.forEach(function (x) { used += Math.max(0, Math.min(5, t[x.id] || 0)); });
+  const total = TALENTS.length * 5;
+  el.textContent = used + ' / ' + total + ' 点';
+  el.style.color = used >= total ? '#ffd85c' : '';
+}
+
 function buyTalent(id) {
   const prog = loadProgress();
   prog.talents = prog.talents || {};
@@ -1116,6 +1129,7 @@ function buyTalent(id) {
       .catch(function () {});
   }
   renderDataPage('talent');
+  refreshTalentCount();
   toast(t.name + ' 升到 ' + (lv + 1) + ' 级');
 }
 
@@ -1878,6 +1892,7 @@ function initMenu() {
 
   // 账号栏与弹窗
   refreshAccountBar();
+  refreshTalentCount();
 
   // 赛季自动结算（跨赛季才触发，延迟执行不阻塞界面）
   setTimeout(function () {
