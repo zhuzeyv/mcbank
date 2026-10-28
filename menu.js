@@ -1294,6 +1294,122 @@ async function renderRank() {
   }
 }
 
+/* ---------- 属性面板 ---------- */
+function renderStats(title, sections) {
+  document.getElementById('statsTitle').textContent = title;
+  const list = document.getElementById('statsList');
+  let html = '';
+  sections.forEach(function (sec) {
+    if (sec.title) html += '<div class="stats-sec">' + sec.title + '</div>';
+    (sec.rows || []).forEach(function (r) {
+      html += '<div class="stats-row' + (r.hl ? ' hl' : '') + '">' +
+        '<span class="sk">' + r.k + '</span>' +
+        '<span class="sv">' + r.v + '</span></div>';
+    });
+  });
+  list.innerHTML = html;
+  document.getElementById('statsModal').classList.remove('hidden');
+}
+
+function closeStats() {
+  document.getElementById('statsModal').classList.add('hidden');
+}
+
+/* 大厅：显示加成汇总（装备 / 称号 / 天赋） */
+function openMenuStats() {
+  const prog = loadProgress();
+  const eq = prog.equipment || {};
+  const eb = EQUIP.totalBonus(eq);
+
+  const fmt = function (v, isPct, unit) {
+    if (isPct) return '+' + (v * 100).toFixed(1) + '%';
+    return '+' + Math.round(v) + (unit || '');
+  };
+
+  const eqRows = [];
+  const STAT_ORDER = ['hp', 'dmg', 'speed', 'haste', 'crit', 'armor', 'pickup', 'lifesteal', 'regen'];
+  const STAT_LABEL = {
+    hp: ['生命', false, ''], dmg: ['伤害', true], speed: ['移速', true],
+    haste: ['攻速', true], crit: ['暴击', true], armor: ['减伤', true],
+    pickup: ['拾取', true], lifesteal: ['吸血', true], regen: ['每秒回复', false, '']
+  };
+  STAT_ORDER.forEach(function (k) {
+    const v = eb[k] || 0;
+    if (!v) return;
+    const meta = STAT_LABEL[k];
+    eqRows.push({ k: meta[0], v: fmt(v, meta[1], meta[2]), hl: true });
+  });
+  if (!eqRows.length) eqRows.push({ k: '尚未穿戴装备', v: '—' });
+
+  // 称号
+  const t = (typeof bestTitle === 'function') ? bestTitle() : null;
+  const titleRows = t
+    ? [{ k: t.name, v: t.text, hl: true }]
+    : [{ k: '无称号', v: '通关区域后获得' }];
+
+  // 天赋
+  const talRows = [];
+  TALENTS.forEach(function (tt) {
+    const lv = talentLevel(tt.id);
+    if (!lv) return;
+    talRows.push({ k: tt.name + ' ' + lv + ' 级', v: tt.unit + ' × ' + lv });
+  });
+  if (!talRows.length) talRows.push({ k: '还没点天赋', v: '去「天赋」页用金币升级' });
+
+  const n = Object.keys(eq).length;
+  renderStats('当前属性加成', [
+    { title: '装备（已穿 ' + n + ' 件）', rows: eqRows },
+    { title: '称号', rows: titleRows },
+    { title: '永久天赋', rows: talRows },
+    { title: '说明', rows: [{ k: '以上加成', v: '开局时自动生效' }] }
+  ]);
+}
+
+/* 暂停：显示本局实时数值 */
+function openPauseStats() {
+  const S = (typeof Game !== 'undefined' && Game.debug) ? Game.debug() : null;
+  if (!S || !S.player) { toast('还没开局'); return; }
+  const p = S.player;
+  const pct = function (v) { return ((v || 0) * 100).toFixed(1) + '%'; };
+  const num = function (v) { return Math.round(v || 0).toLocaleString(); };
+
+  renderStats('本局属性', [
+    {
+      title: '基础',
+      rows: [
+        { k: '生命', v: Math.round(p.hp) + ' / ' + Math.round(p.maxHp), hl: true },
+        { k: '等级', v: S.level + ' 级' },
+        { k: '存活', v: Math.floor(S.time / 60) + ':' + String(Math.floor(S.time % 60)).padStart(2, '0') }
+      ]
+    },
+    {
+      title: '输出',
+      rows: [
+        { k: '伤害倍率', v: '×' + p.dmgMul.toFixed(2), hl: true },
+        { k: '攻击速度', v: '×' + (p.atkSpeedMul || 1).toFixed(2) },
+        { k: '暴击率', v: pct(p.critChance) },
+        { k: '暴击伤害', v: '×' + (p.critMul || 2).toFixed(2) }
+      ]
+    },
+    {
+      title: '生存',
+      rows: [
+        { k: '减伤', v: pct(p.armor) },
+        { k: '吸血', v: pct(p.lifesteal), hl: (p.lifesteal || 0) > 0 },
+        { k: '每秒回复', v: (p.regen || 0).toFixed(1) }
+      ]
+    },
+    {
+      title: '其他',
+      rows: [
+        { k: '移动速度', v: num(p.speed) },
+        { k: '拾取范围', v: num(p.pickup) },
+        { k: '击杀 / 场上', v: S.kills + ' / ' + S.enemies.length }
+      ]
+    }
+  ]);
+}
+
 /* ---------- 赛季奖励说明 ---------- */
 function openSeasonModal() {
   const season = SB.currentSeason();
@@ -1769,6 +1885,11 @@ function initMenu() {
   }, 1500);
   document.getElementById('btnAccCancel').onclick = closeAccountModal;
   document.getElementById('btnGameIdCancel').onclick = closeGameIdModal;
+  document.getElementById('btnStatsClose').onclick = closeStats;
+  document.getElementById('statsModal').onclick = e => {
+    if (e.target.id === 'statsModal') closeStats();
+  };
+  document.getElementById('btnMenuStats').onclick = openMenuStats;
   document.getElementById('btnSeasonClose').onclick = closeSeasonModal;
   document.getElementById('seasonModal').onclick = e => {
     if (e.target.id === 'seasonModal') closeSeasonModal();
