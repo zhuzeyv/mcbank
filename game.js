@@ -179,6 +179,8 @@ const Game = (function () {
       boss: null,
       bossSpawned: false,
       bossGrace: 0,
+      bossCount: 0,
+      nextBossAt: 0,
       eliteTimer: 10,
       shake: 0,
       hurtFlash: 0,
@@ -270,6 +272,17 @@ const Game = (function () {
       for (const c of S.chests) grantLoot(c.x, c.y, true);
       S.chests.length = 0;
       for (let i = 0; i < 2; i++) grantLoot(e.x, e.y, true, 12);   // 保底史诗（20 档体系）
+
+      // 无尽模式：不通关，安排下一个更凶的首领
+      if (S.zone.endless) {
+        S.bossSpawned = false;
+        S.nextBossAt = S.time + 150;
+        S.bossGrace = 3.0;
+        addText(p.x, p.y - 70, '首领倒下 · 下一个更凶', '#ffd85c', 17);
+        if (typeof SFX !== 'undefined') SFX.levelup();
+        return;
+      }
+
       win();
       return;
     }
@@ -576,7 +589,10 @@ const Game = (function () {
       }
 
       // BOSS
-      if (!S.bossSpawned && S.time >= S.zone.time) {
+      if (S.zone.endless) {
+        // 无尽模式：场上没 BOSS 且到了时间就刷一个（循环）
+        if (!S.boss && S.time >= (S.nextBossAt || S.zone.time)) spawnBoss();
+      } else if (!S.bossSpawned && S.time >= S.zone.time) {
         spawnBoss();
       }
     }
@@ -905,7 +921,7 @@ const Game = (function () {
       skin: bd.skin,
       isBoss: true,
       name: bd.name,
-      hp: 46 * bd.hpMul * (1 + S.zoneIdx * 0.35) * S.diff.hp,
+      hp: 46 * bd.hpMul * (1 + S.zoneIdx * 0.35) * S.diff.hp * (1 + (S.bossCount || 0) * 0.55),
       maxHp: 0,
       spd: bd.spd,
       dmg: bd.dmg * S.diff.dmg,
@@ -917,6 +933,7 @@ const Game = (function () {
       ranged: !!bd.ranged
     };
     e.maxHp = e.hp;
+    S.bossCount = (S.bossCount || 0) + 1;
     S.enemies.push(e);
     S.boss = e;
     S.shake = 14;
@@ -2083,7 +2100,7 @@ const Game = (function () {
     // 上传赛季成绩（仅登录用户）
     try {
       if (typeof SB !== 'undefined' && SB.currentUser && SB.currentUser()) {
-        const baseScore = S.kills * 10 + S.level * 50 + (isWin ? 500 : 0);
+        const baseScore = S.kills * 10 + S.level * 50 + (isWin ? 500 : 0) + Math.floor(S.time) * 2;
         const score = Math.round(baseScore * (S.diff.scoreMul || 1));
         SB.submitRun({
           trainer_name: SB.currentUser().name,
@@ -2099,7 +2116,7 @@ const Game = (function () {
       ? (S.unlockedName ? `已解锁新区域：${S.unlockedName}` : `${S.zone.name}的夜晚终于安静下来`)
       : `${S.zone.name}多了一具新的尸体`;
     const mul = S.diff.scoreMul || 1;
-    const rawScore = S.kills * 10 + S.level * 50 + (isWin ? 500 : 0);
+    const rawScore = S.kills * 10 + S.level * 50 + (isWin ? 500 : 0) + Math.floor(S.time) * 2;
     const finalScore = Math.round(rawScore * mul);
     document.getElementById('resStats').innerHTML = `
       <div class="res-stat"><span>存活时间</span><b>${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}</b></div>
