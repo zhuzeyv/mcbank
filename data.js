@@ -584,7 +584,7 @@ const ZONES = [
     desc: '虚空在脚下张开。末影人不会主动攻击——直到你抬头看它们。',
     theme: { g1: '#2a2438', g2: '#1e1a2a', g3: '#332c44', dirt: '#14101e', fog: 'rgba(120,80,200,.07)' },
     mobs: ['enderman', 'blaze', 'skeleton'],
-    hpMul: 5.1, dmgMul: 1.65, spawnMul: 1.85, time: 180
+    hpMul: 4.5, dmgMul: 1.50, spawnMul: 1.75, time: 180
   },
   {
     id: 'deepdark', name: '深暗之域', lv: '22 - 30', boss: '监守者',
