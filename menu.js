@@ -1379,6 +1379,9 @@ function initMenu() {
     document.querySelector('.tab[data-page="talent"]').click();
   };
 
+  // 预热 Supabase 连接：提前握手，第一次登录不用等 DNS + TLS
+  if (typeof SB !== 'undefined' && SB.warmup) SB.warmup();
+
   // 音效：首次交互时初始化 AudioContext（浏览器策略要求）
   document.addEventListener('pointerdown', function () {
     if (typeof SFX !== 'undefined') SFX.init();
