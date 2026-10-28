@@ -592,6 +592,15 @@ const ZONES = [
     theme: { g1: '#1c2a2c', g2: '#141e20', g3: '#263638', dirt: '#0e1618', fog: 'rgba(40,120,120,.09)' },
     mobs: ['warden_spawn', 'enderman', 'wither_skeleton'],
     hpMul: 4.0, spawnMul: 1.85, time: 190
+  },
+  {
+    id: 'endless', name: '无尽深渊', lv: '∞', boss: '轮回者',
+    desc: '没有终点。每 2 分半会再来一位更凶的首领，撑得越久分越高。',
+    theme: { g1: '#2a1e34', g2: '#1a1222', g3: '#3a2a48', dirt: '#120c1a', fog: 'rgba(160,90,220,.10)' },
+    mobs: ['zombie', 'skeleton', 'spider', 'creeper', 'husk', 'witch',
+           'blaze', 'wither_skeleton', 'enderman', 'warden_spawn'],
+    hpMul: 5.0, spawnMul: 2.2, time: 120,
+    endless: true
   }
 ];
 
@@ -791,6 +800,11 @@ const BOSSES = {
     name: '监守者', hpMul: 54, spd: 64, dmg: 34, size: 142, xp: 640, kind: 'warden',
     skin: { body: '#1c3438', dark: '#0e1e22', eye: '#40e0d0' },
     skills: ['sonic', 'quake', 'charge']
+  },
+  endless: {
+    name: '轮回者', hpMul: 60, spd: 70, dmg: 38, size: 150, xp: 800, kind: 'dragon',
+    skin: { body: '#2a1e34', dark: '#140c1c', eye: '#c060f0' },
+    skills: ['sonic', 'quake', 'charge', 'meteor']
   }
 };
 
