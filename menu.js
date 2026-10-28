@@ -61,18 +61,20 @@ function saveProgress(p) {
 }
 
 /* 难度解锁：普通 → 困难（需普通全通）→ 极限（需困难全通） */
+const NORMAL_ZONE_COUNT = ZONES.filter(function (z) { return !z.endless; }).length;
+
 function isDiffUnlocked(diff) {
   const prog = loadProgress();
   if (diff === 0) return true;
-  if (diff === 1) return (prog.cleared || []).length >= ZONES.length;
-  if (diff === 2) return (prog.clearedHard || []).length >= ZONES.length;
+  if (diff === 1) return (prog.cleared || []).length >= NORMAL_ZONE_COUNT;
+  if (diff === 2) return (prog.clearedHard || []).length >= NORMAL_ZONE_COUNT;
   return false;
 }
 
 function diffProgressText(diff) {
   const prog = loadProgress();
-  if (diff === 1) return '需通关全部普通区域（' + (prog.cleared || []).length + '/' + ZONES.length + '）';
-  if (diff === 2) return '需通关全部困难区域（' + (prog.clearedHard || []).length + '/' + ZONES.length + '）';
+  if (diff === 1) return '需通关全部普通区域（' + (prog.cleared || []).length + '/' + NORMAL_ZONE_COUNT + '）';
+  if (diff === 2) return '需通关全部困难区域（' + (prog.clearedHard || []).length + '/' + NORMAL_ZONE_COUNT + '）';
   return '';
 }
 
@@ -84,6 +86,8 @@ function isZoneUnlocked(zoneId, diff) {
   const prog = loadProgress();
   const idx = ZONES.findIndex(z => z.id === zoneId);
   if (idx < 0) return false;
+  // 无尽深渊：通关全部普通区域后解锁
+  if (ZONES[idx].endless) return (prog.cleared || []).length >= NORMAL_ZONE_COUNT;
   if (idx === 0) return true;
 
   const list = diff === 0 ? (prog.cleared || [])
