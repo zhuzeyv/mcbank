@@ -1359,3 +1359,18 @@ body.is-touch .hud-right{margin-right:48px;}
   padding-top:6px;border-top:2px dashed rgba(27,20,36,.18);
 }
 .stats-sec:first-child{border-top:none;padding-top:0;margin-top:0;}
+
+/* 宝箱弹窗：品质副标题 + 介绍 */
+.ci-sub{
+  text-align:center;font-size:10.5px;font-weight:700;
+  color:var(--text-dim);margin:-2px 0 8px;
+}
+.ci-flavor{
+  margin-top:8px;padding-top:7px;
+  border-top:2px dashed rgba(27,20,36,.15);
+  display:flex;flex-direction:column;gap:1px;align-items:center;
+}
+.ci-flavor span{
+  font-size:9.5px;font-style:italic;font-weight:700;
+  color:#7a5aa8;line-height:1.4;
+}
