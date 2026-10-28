@@ -1004,7 +1004,20 @@ const Game = (function () {
     }
   }
 
+  // BOSS 技能伤害：难度加成 × 释放次数递增（逼玩家必须躲）
+  //   难度：普通 ×1.0 / 困难 ×1.4 / 极限 ×1.8
+  //   递增：每放一次 +7%，拖得越久越致命
+  function skillDamage(e, mul, pct) {
+    const diffBonus = 1 + (S.cfg.diff || 0) * 0.40;
+    const castBonus = 1 + (e.skillCast || 0) * 0.07;
+    const flat = e.dmg * mul * diffBonus * castBonus;
+    // 百分比伤害：按玩家最大生命的比例，堆血也躲不掉
+    const ratio = (pct || 0) * diffBonus * castBonus * S.player.maxHp;
+    return Math.max(flat, ratio);
+  }
+
   function useBossSkill(e, sk, dx, dy, d) {
+    e.skillCast = (e.skillCast || 0) + 1;
     const p = S.player;
     if (sk === 'summon') {
       const kind = pick(S.zone.mobs);
@@ -1021,17 +1034,17 @@ const Game = (function () {
       e.chargeVy = Math.sin(a) * 620;
       addEffect('ring', e.x, e.y, 70, '#e8a020', 0.4);
     } else if (sk === 'volley') {
-      shootAtPlayer(e, 260, e.dmg * 0.6, 7, 0.22);
+      shootAtPlayer(e, 260, skillDamage(e, 0.70, 0.05), 7, 0.22);
     } else if (sk === 'quake') {
       const r = 260;
       addEffect('ring', e.x, e.y, r, '#c88040', 0.6);
-      if (d < r) damagePlayer(e.dmg * 0.8);
+      if (d < r) damagePlayer(skillDamage(e, 1.00, 0.08));
       S.shake = Math.max(S.shake, 10);
     } else if (sk === 'meteor') {
       for (let i = 0; i < 5; i++) {
         const a = rnd(0, TAU), rr = rnd(40, 220);
         const tx = p.x + Math.cos(a) * rr, ty = p.y + Math.sin(a) * rr;
-        S.hazards.push({ x: tx, y: ty, r: 54, dmg: e.dmg * 0.7, life: 1.6, tick: 1.0, color: '#f07820' });
+        S.hazards.push({ x: tx, y: ty, r: 54, dmg: skillDamage(e, 0.85, 0.06), life: 1.6, tick: 1.0, color: '#f07820' });
         addEffect('meteor', tx, ty, 54, '#f07820', 1.0);
       }
     } else if (sk === 'sonic') {
@@ -1039,7 +1052,7 @@ const Game = (function () {
       S.projectiles.push({
         x: e.x, y: e.y - e.size * 0.4,
         vx: Math.cos(a) * 520, vy: Math.sin(a) * 520,
-        r: 22, dmg: e.dmg * 1.3, life: 1.6, enemy: true,
+        r: 22, dmg: skillDamage(e, 1.50, 0.12), life: 1.6, enemy: true,
         color: '#40e0d0', pierce: 99, hit: [], big: true
       });
       S.shake = Math.max(S.shake, 8);
