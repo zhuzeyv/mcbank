@@ -830,7 +830,15 @@ function wearItem(id) {
 
 /* ---------- 商城 ---------- */
 function shopPrice(it) {
-  return Math.round(sellPrice(it) * 3.2);
+  // 按品质分档定价：越极品越贵，避免玩家刷几局就能买一身
+  const base = sellPrice(it);
+  const q = it.quality || 0;
+  let mul;
+  if (q >= 14) mul = 12;        // 传说 / 不朽 / 神话 / 逆天 / 寰宇 / 根源
+  else if (q >= 12) mul = 9;    // 史诗 / 超凡
+  else if (q >= 9) mul = 6;     // 稀有 / 罕见 / 瑰宝
+  else mul = 4;                 // 精良及以下
+  return Math.round(base * mul);
 }
 
 const SHOP_TTL = 4 * 3600 * 1000;   // 4 小时刷新一次
