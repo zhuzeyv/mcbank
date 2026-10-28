@@ -201,6 +201,7 @@
     <div class="res-title" id="resTitle">被击败了</div>
     <div class="res-sub" id="resSub">僵尸从背后抱住了你</div>
     <div class="res-stats" id="resStats"></div>
+    <div class="res-rank" id="resRank" style="display:none"></div>
     <div class="res-loot" id="resLoot" style="display:none"></div>
     <div class="res-btns">
       <button class="res-btn" id="btnRetry">再来一局</button>
@@ -231,6 +232,29 @@
 </div>
 
 <div id="toast" class="toast"></div>
+
+<!-- 赛季奖励说明 -->
+<div class="modal hidden" id="seasonModal">
+  <div class="modal-box wide">
+    <div class="modal-head"><span>赛季奖励说明</span></div>
+    <div class="modal-body">
+      <div class="season-head">
+        <div class="sh-season" id="shSeason">第 1 赛季</div>
+        <div class="sh-cd" id="shCd">—</div>
+      </div>
+      <div class="season-tiers" id="seasonTiers"></div>
+      <div class="season-rule">
+        <p><b>怎么排名</b>：按本赛季<b>单局最高分</b>计算，每人只占一行。</p>
+        <p><b>游戏内奖励</b>（徽章 / 称号 / 头像框）：赛季结束后<b>自动发放到账号</b>，下次打开游戏即可看到。</p>
+        <p><b>服务器物品奖励</b>：由服主按排行榜<b>手动发放</b>，请务必绑定游戏 ID。</p>
+        <p><b>同分怎么算</b>：先达到该分数的人排前面。</p>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="modal-btn ghost" id="btnSeasonClose">关闭</button>
+    </div>
+  </div>
+</div>
 
 <!-- 绑定游戏 ID -->
 <div class="modal hidden" id="gameIdModal">
