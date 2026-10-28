@@ -91,6 +91,7 @@
 
         <div class="sub-title">装备</div>
         <div class="equip-slots" id="equipSlots"></div>
+        <button class="stats-entry" id="btnMenuStats">查看完整属性</button>
         <div class="equip-hint" id="equipHint">尚未穿戴装备。首领掉落会存入军械库，永久保留。</div>
 
         <div class="two-btn">
@@ -219,6 +220,7 @@
     <div class="res-title small">已暂停</div>
     <div class="res-btns">
       <button class="res-btn" id="btnResume">继续</button>
+      <button class="res-btn" id="btnPauseStats">属性</button>
       <button class="res-btn danger" id="btnSuicide">结束本局</button>
       <button class="res-btn ghost" id="btnQuit">放弃并返回</button>
     </div>
@@ -233,6 +235,19 @@
 </div>
 
 <div id="toast" class="toast"></div>
+
+<!-- 属性面板 -->
+<div class="modal hidden" id="statsModal">
+  <div class="modal-box wide">
+    <div class="modal-head"><span id="statsTitle">属性</span></div>
+    <div class="modal-body">
+      <div class="stats-list" id="statsList"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="modal-btn ghost" id="btnStatsClose">关闭</button>
+    </div>
+  </div>
+</div>
 
 <!-- 赛季奖励说明 -->
 <div class="modal hidden" id="seasonModal">
