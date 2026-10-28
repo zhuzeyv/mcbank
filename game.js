@@ -120,6 +120,8 @@ const Game = (function () {
     p.critChance += (eb.crit || 0);
     p.armor = Math.min(0.75, p.armor + (eb.armor || 0));
     p.pickup *= (1 + (eb.pickup || 0));
+    p.lifesteal = (p.lifesteal || 0) + (eb.lifesteal || 0);
+    p.regen = (p.regen || 0) + (eb.regen || 0);
 
     // ---- 称号加成（自动穿戴已通关称号里评分最高的）----
     try {
@@ -149,6 +151,8 @@ const Game = (function () {
         if (tb.crit) p.critChance += tb.crit;
         if (tb.speed) p.speed *= (1 + tb.speed);
         if (tb.pickup) p.pickup *= (1 + tb.pickup);
+        if (tb.lifesteal) p.lifesteal = (p.lifesteal || 0) + tb.lifesteal;
+        if (tb.regen) p.regen = (p.regen || 0) + tb.regen;
       }
     } catch (e) {}
 
@@ -219,6 +223,11 @@ const Game = (function () {
     if (e.dead) return;
     const { dmg, crit } = rollDamage(base);
     e.hp -= dmg;
+    // 吸血
+    if (S.player.lifesteal > 0 && dmg > 0) {
+      const heal = dmg * S.player.lifesteal;
+      if (heal >= 0.5) S.player.hp = Math.min(S.player.maxHp, S.player.hp + heal);
+    }
     e.hitFlash = 0.1;
     e.kx = (e.kx || 0) + (opts && opts.kx ? opts.kx : 0);
 
@@ -504,6 +513,10 @@ const Game = (function () {
     if (p.swing > 0) p.swing = Math.max(0, p.swing - dt * 6);
     if (p.hurtCd > 0) p.hurtCd -= dt;
     if (p.invuln > 0) p.invuln -= dt;
+    // 每秒回复（吸血之外的续航）
+    if (p.regen > 0 && p.hp < p.maxHp) {
+      p.hp = Math.min(p.maxHp, p.hp + p.regen * dt);
+    }
 
     // ---- 摄像机（等距：玩家恒在屏幕中心）----
     S.cam.x = p.x;
@@ -525,7 +538,8 @@ const Game = (function () {
     if (!S.over) {
       if (S.bossGrace > 0) S.bossGrace -= dt;
       S.spawnTimer -= dt;
-      if (S.spawnTimer <= 0 && S.bossGrace <= 0) {
+      const bossAlive = !!(S.boss && !S.boss.dead);
+      if (S.spawnTimer <= 0 && S.bossGrace <= 0 && !bossAlive) {
         // 等级越高刷得越快（等级是玩家变强的直接体现，怪必须跟上）
         const lvFactor = 1 + S.level * 0.024;
         const rate = Math.max(0.055,
@@ -542,7 +556,7 @@ const Game = (function () {
       // 波次冲击：间隔随时间缩短（20s → 10s），规模随时间和等级增长
       S.waveTimer += dt;
       const waveGap = Math.max(10, 20 - S.time / 140);
-      if (S.waveTimer >= waveGap) {
+      if (S.waveTimer >= waveGap && !(S.boss && !S.boss.dead)) {
         S.waveTimer = 0;
         S.waveCount++;
         const n = 5 + Math.round(S.waveCount * 1.5) + Math.floor(S.level * 0.45)
@@ -558,7 +572,7 @@ const Game = (function () {
       S.eliteTimer -= dt;
       if (S.eliteTimer <= 0) {
         S.eliteTimer = 22;
-        if (S.enemies.length < 150) spawnElite();
+        if (S.enemies.length < 150 && !(S.boss && !S.boss.dead)) spawnElite();
       }
 
       // BOSS
@@ -909,15 +923,14 @@ const Game = (function () {
     if (typeof SFX !== 'undefined') SFX.boss();
     addEffect('bossRing', e.x, e.y, 160, '#e8a020', 0.9);
 
-    // 登场清场：干掉玩家 420 半径内的小怪，并给 3 秒喘息
+    // BOSS 登场：全场清空（小怪 + 精英），给玩家一个干净的单挑场地
     for (let i = S.enemies.length - 1; i >= 0; i--) {
       const m = S.enemies[i];
       if (m.isBoss || m.dead) continue;
-      if (dist2(m.x, m.y, p.x, p.y) < 420 * 420) {
-        m.dead = true;
-        burst(m.x, m.y, 6, [m.skin.body || '#888', '#ffffff']);
-      }
+      m.dead = true;
+      burst(m.x, m.y, 6, [m.skin.body || '#888', '#ffffff']);
     }
+    S.chests.length = 0;   // 场上宝箱一并收掉（避免玩家分心）
     S.bossGrace = 3.0;
     p.hp = Math.min(p.maxHp, p.hp + p.maxHp * 0.18);
     addText(p.x, p.y - 50, '+回血', '#8de05a', 15);
@@ -2070,7 +2083,8 @@ const Game = (function () {
     // 上传赛季成绩（仅登录用户）
     try {
       if (typeof SB !== 'undefined' && SB.currentUser && SB.currentUser()) {
-        const score = S.kills * 10 + S.level * 50 + (isWin ? 500 : 0);
+        const baseScore = S.kills * 10 + S.level * 50 + (isWin ? 500 : 0);
+        const score = Math.round(baseScore * (S.diff.scoreMul || 1));
         SB.submitRun({
           trainer_name: SB.currentUser().name,
           score: score, kills: S.kills, level: S.level,
@@ -2084,10 +2098,14 @@ const Game = (function () {
     document.getElementById('resSub').textContent = isWin
       ? (S.unlockedName ? `已解锁新区域：${S.unlockedName}` : `${S.zone.name}的夜晚终于安静下来`)
       : `${S.zone.name}多了一具新的尸体`;
+    const mul = S.diff.scoreMul || 1;
+    const rawScore = S.kills * 10 + S.level * 50 + (isWin ? 500 : 0);
+    const finalScore = Math.round(rawScore * mul);
     document.getElementById('resStats').innerHTML = `
       <div class="res-stat"><span>存活时间</span><b>${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}</b></div>
       <div class="res-stat"><span>击杀</span><b>${S.kills}</b></div>
       <div class="res-stat"><span>等级</span><b>${S.level}</b></div>
+      <div class="res-stat"><span>积分${mul > 1 ? '（' + S.diff.name + ' ×' + mul + '）' : ''}</span><b>${finalScore.toLocaleString()}</b></div>
     `;
     // 首领战利品
     try {
