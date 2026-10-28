@@ -28,10 +28,12 @@ function loadProgress() {
       armory: (obj && obj.armory) || [],
       gold: (obj && typeof obj.gold === 'number') ? obj.gold : 0,
       talents: (obj && obj.talents) || {},
-      shopUntil: (obj && obj.shopUntil) || 0
+      shopUntil: (obj && obj.shopUntil) || 0,
+      sealedSeason: (obj && obj.sealedSeason) || 0,
+      badges: (obj && obj.badges) || []
     };
   } catch (e) {
-    _progressCache = { cleared: [], clearedHard: [], clearedNightmare: [], stats: { kills: 0, bestLevel: 0, games: 0 }, equipment: {}, armory: [], gold: 0, talents: {}, shopUntil: 0 };
+    _progressCache = { cleared: [], clearedHard: [], clearedNightmare: [], stats: { kills: 0, bestLevel: 0, games: 0 }, equipment: {}, armory: [], gold: 0, talents: {}, shopUntil: 0, sealedSeason: 0, badges: [] };
   }
   return _progressCache;
 }
@@ -1136,7 +1138,19 @@ function renderExtraPage(page) {
 
   if (page === 'collection') {
     title.textContent = '收藏';
-    grid.innerHTML = ZONES.map(z => {
+    const badges = prog.badges || [];
+    const badgeHtml = badges.length
+      ? '<div class="dcard done" style="grid-column:1/-1">' +
+          '<div class="dcard-ic">' + (ICON.star || '') + '</div>' +
+          '<div class="dcard-body">' +
+            '<div class="dcard-name">赛季徽章</div>' +
+            '<div class="dcard-meta">' + badges.map(function (b) {
+              return '第' + b.season + '赛季 第' + b.rank + '名 · ' + b.reward;
+            }).join(' ／ ') + '</div>' +
+          '</div>' +
+        '</div>'
+      : '';
+    grid.innerHTML = badgeHtml + ZONES.map(z => {
       const cleared = prog.cleared.includes(z.id);
       return `<div class="dcard ${cleared ? 'done' : 'locked'}">
         <div class="dcard-ic">${cleared ? ICON.skull : '<span class="glyph">?</span>'}</div>
@@ -1232,11 +1246,14 @@ async function renderRank() {
      </div>
      <div class="rank-list" id="rankList"><div class="rank-loading">加载中…</div></div>
      <div class="rank-reward">
-       <div class="rr-title">赛季奖励</div>
+       <div class="rr-title" style="display:flex;align-items:center">赛季奖励<span class="rank-reward-link" id="rankRewardLink">说明</span></div>
        <div class="rr-tiers">
          ${RANK_TIERS.map(t => `<div class="rr-tier ${t.cls}"><b>${t.range}</b><span>${t.reward}</span></div>`).join('')}
        </div>
      </div>`;
+
+  const link = document.getElementById('rankRewardLink');
+  if (link) link.onclick = openSeasonModal;
 
   const list = document.getElementById('rankList');
   try {
@@ -1262,6 +1279,104 @@ async function renderRank() {
     }).join('');
   } catch (e) {
     list.innerHTML = `<div class="rank-loading">读取失败：${e.message || e}</div>`;
+  }
+}
+
+/* ---------- 赛季奖励说明 ---------- */
+function openSeasonModal() {
+  const season = SB.currentSeason();
+  const cd = SB.seasonCountdown();
+  document.getElementById('shSeason').textContent = season.name;
+  document.getElementById('shCd').textContent = cd.text;
+
+  const TIER_DETAIL = [
+    { range: '第 1 名',    reward: '金色徽章 + 专属称号', cls: 't1' },
+    { range: '2 - 3 名',   reward: '银色徽章',           cls: 't2' },
+    { range: '4 - 10 名',  reward: '铜色徽章',           cls: 't3' },
+    { range: '11 - 25 名', reward: '赛季头像框',         cls: '' },
+    { range: '26 - 50 名', reward: '限定称号',           cls: '' },
+    { range: '51 - 100 名', reward: '纪念徽章',          cls: '' }
+  ];
+  document.getElementById('seasonTiers').innerHTML = TIER_DETAIL.map(function (t) {
+    return '<div class="st-item ' + t.cls + '"><b>' + t.range + '</b><span>' + t.reward + '</span></div>';
+  }).join('');
+
+  document.getElementById('seasonModal').classList.remove('hidden');
+}
+
+function closeSeasonModal() {
+  document.getElementById('seasonModal').classList.add('hidden');
+}
+
+/* 查我在当前赛季的排名（用于结算界面显示） */
+async function fetchMyRank() {
+  try {
+    if (typeof SB === 'undefined' || !SB.currentUser()) return null;
+    const season = SB.currentSeason();
+    const rows = await SB.getLeaderboard(season.id, 100);
+    const me = SB.currentUser().name;
+    for (let i = 0; i < rows.length; i++) {
+      if ((rows[i].trainer_name || '').trim() === me) {
+        return { rank: i + 1, total: rows.length, score: rows[i].score };
+      }
+    }
+    return { rank: 0, total: rows.length, score: 0 };
+  } catch (e) { return null; }
+}
+
+/* 按名次给奖励名 */
+function rewardForRank(rank) {
+  if (!rank) return '';
+  if (rank === 1) return '金色徽章 + 专属称号';
+  if (rank <= 3) return '银色徽章';
+  if (rank <= 10) return '铜色徽章';
+  if (rank <= 25) return '赛季头像框';
+  if (rank <= 50) return '限定称号';
+  if (rank <= 100) return '纪念徽章';
+  return '';
+}
+
+/* ---------- 赛季自动结算 ---------- */
+/* 每次打开游戏检查：如果跨赛季了，结算上赛季并把游戏内奖励发到账号 */
+async function checkSeasonSettle() {
+  // 不额外做防重入：sealedSeason 判断本身就能保证只结算一次
+  if (typeof SB === 'undefined' || !SB.currentUser()) return;
+
+  const prog = loadProgress();
+  const cur = SB.currentSeason().id;
+  const sealed = prog.sealedSeason;
+
+  // 第一次玩：记下当前赛季，不结算
+  if (!sealed) {
+    prog.sealedSeason = cur;
+    prog.badges = prog.badges || [];
+    saveProgress(prog);
+    return;
+  }
+  if (cur <= sealed) return;   // 还没跨赛季
+
+  // 跨赛季了：结算 sealed 赛季
+  try {
+    const rows = await SB.getLeaderboard(sealed, 100);
+    const me = SB.currentUser().name;
+    let rank = 0;
+    for (let i = 0; i < rows.length; i++) {
+      if ((rows[i].trainer_name || '').trim() === me) { rank = i + 1; break; }
+    }
+
+    prog.sealedSeason = cur;
+    prog.badges = prog.badges || [];
+    if (rank > 0 && rank <= 100) {
+      const reward = rewardForRank(rank);
+      prog.badges.push({ season: sealed, rank: rank, reward: reward, at: Date.now() });
+      saveProgress(prog);
+      if (typeof SFX !== 'undefined') SFX.buy();
+      toast('第 ' + sealed + ' 赛季结算：第 ' + rank + ' 名 · ' + reward);
+    } else {
+      saveProgress(prog);
+    }
+  } catch (e) {
+    // 网络失败，下次打开再试
   }
 }
 
@@ -1635,8 +1750,17 @@ function initMenu() {
 
   // 账号栏与弹窗
   refreshAccountBar();
+
+  // 赛季自动结算（跨赛季才触发，延迟执行不阻塞界面）
+  setTimeout(function () {
+    if (typeof checkSeasonSettle === 'function') checkSeasonSettle();
+  }, 1500);
   document.getElementById('btnAccCancel').onclick = closeAccountModal;
   document.getElementById('btnGameIdCancel').onclick = closeGameIdModal;
+  document.getElementById('btnSeasonClose').onclick = closeSeasonModal;
+  document.getElementById('seasonModal').onclick = e => {
+    if (e.target.id === 'seasonModal') closeSeasonModal();
+  };
   document.getElementById('btnGameIdSave').onclick = saveGameId;
   document.getElementById('gameIdModal').onclick = e => {
     if (e.target.id === 'gameIdModal') closeGameIdModal();
