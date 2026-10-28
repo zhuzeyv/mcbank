@@ -2265,6 +2265,9 @@ const Game = (function () {
     document.getElementById('btnBack').onclick = toMenu;
     document.getElementById('btnResume').onclick = () => togglePause();
     document.getElementById('btnQuit').onclick = toMenu;
+    document.getElementById('btnPauseStats').onclick = () => {
+      if (typeof openPauseStats === 'function') openPauseStats();
+    };
     document.getElementById('btnSuicide').onclick = () => {
       document.getElementById('pausePanel').classList.add('hidden');
       if (S) S.paused = false;
