@@ -1313,3 +1313,10 @@ body.is-touch .hud-right{margin-right:48px;}
   font-size:12px;font-weight:700;color:#7a5a10;text-align:center;
 }
 .res-rank b{color:var(--ink);font-size:14px;}
+
+/* 暂停面板：结束本局 */
+.res-btn.danger{
+  background:var(--red);color:#fff;
+  box-shadow:0 4px 0 var(--red-d);
+  text-shadow:0 2px 0 var(--red-d);
+}
