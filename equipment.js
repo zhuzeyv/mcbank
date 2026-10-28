@@ -47,7 +47,9 @@ const EQUIP = (function () {
     { id: 'haste',  name: '攻速', base: 0.045, pct: true },
     { id: 'crit',   name: '暴击', base: 0.035, pct: true },
     { id: 'armor',  name: '减伤', base: 0.030, pct: true },
-    { id: 'pickup', name: '拾取', base: 0.120, pct: true }
+    { id: 'pickup', name: '拾取', base: 0.120, pct: true },
+    { id: 'lifesteal', name: '吸血', base: 0.016, pct: true },
+    { id: 'regen',     name: '回复', base: 1.20,  pct: false }
   ];
 
   const TOTAL_WEIGHT = QUALITY.reduce(function (a, q) { return a + q.weight; }, 0);
@@ -155,7 +157,7 @@ const EQUIP = (function () {
 
   // 把一套装备的属性汇总成一个加成对象
   function totalBonus(equipped) {
-    const b = { hp: 0, dmg: 0, speed: 0, haste: 0, crit: 0, armor: 0, pickup: 0 };
+    const b = { hp: 0, dmg: 0, speed: 0, haste: 0, crit: 0, armor: 0, pickup: 0, lifesteal: 0, regen: 0 };
     if (!equipped) return b;
     for (const slot of SLOTS) {
       const it = equipped[slot];
