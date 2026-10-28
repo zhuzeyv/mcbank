@@ -528,24 +528,26 @@ const Game = (function () {
       if (S.spawnTimer <= 0 && S.bossGrace <= 0) {
         // 等级越高刷得越快（等级是玩家变强的直接体现，怪必须跟上）
         const lvFactor = 1 + S.level * 0.024;
-        const rate = Math.max(0.12,
-          (1.12 - Math.min(0.62, S.time * 0.0042)) / (S.diff.spawn * lvFactor));
+        const rate = Math.max(0.055,
+          (1.15 - Math.min(0.72, S.time * 0.0048)) / (S.diff.spawn * lvFactor));
         const bossSlow = (S.boss && !S.boss.dead) ? 1.8 : 1;
         S.spawnTimer = rate * bossSlow;
-        const cap = Math.min(190, 100 + S.level * 5);
+        const cap = Math.min(260, 100 + S.level * 4 + Math.floor(S.time / 5));
         if (S.enemies.length < cap) {
           spawnEnemy();
           if (S.level >= 8 && Math.random() < 0.25) spawnEnemy();   // 高等级偶尔成群
         }
       }
 
-      // 每 18 秒一波冲击
+      // 波次冲击：间隔随时间缩短（20s → 10s），规模随时间和等级增长
       S.waveTimer += dt;
-      if (S.waveTimer >= 20) {
+      const waveGap = Math.max(10, 20 - S.time / 140);
+      if (S.waveTimer >= waveGap) {
         S.waveTimer = 0;
         S.waveCount++;
-        const n = 5 + Math.round(S.waveCount * 1.5) + Math.floor(S.level * 0.45);
-        const capW = Math.min(190, 100 + S.level * 5);
+        const n = 5 + Math.round(S.waveCount * 1.5) + Math.floor(S.level * 0.45)
+                + Math.floor(S.time / 90);
+        const capW = Math.min(260, 100 + S.level * 4 + Math.floor(S.time / 5));
         for (let i = 0; i < n; i++) {
           if (S.enemies.length >= capW) break;
           spawnEnemy(true);
@@ -703,8 +705,8 @@ const Game = (function () {
         e.x -= (dx / d) * spd * dt;
         e.y -= (dy / d) * spd * dt;
       }
-      if (e.atkCd <= 0 && d < 420) {
-        e.atkCd = 2.2;
+      if (e.atkCd <= 0 && d < (e.shootRange || 420)) {
+        e.atkCd = e.atkCdBase || 2.2;
         shootAtPlayer(e, 240, e.dmg * 0.8);
       }
     } else if (e.explode) {
@@ -1006,7 +1008,7 @@ const Game = (function () {
     const base = MOBS[kind];
     if (!base) return null;
     scale = scale || 1;
-    const tScale = 1 + S.time / 148;   // 玩家有装备/称号/天赋后变强，怪也得跟上
+    const tScale = 1 + S.time / 148 + Math.pow(Math.max(0, S.time - 300) / 500, 1.6) * 0.6;   // 玩家有装备/称号/天赋后变强，怪也得跟上
     const hp = base.hp * S.zone.hpMul * S.diff.hp * tScale * scale;
     return {
       x, y,
@@ -1018,6 +1020,8 @@ const Game = (function () {
       dmg: base.dmg * S.diff.dmg * 1.10,   // 玩家变强了，怪也得跟上
       xp: base.xp,
       ranged: !!base.ranged,
+      atkCdBase: base.atkCd || 2.2,
+      shootRange: base.shootRange || 420,
       explode: !!base.explode,
       teleport: !!base.teleport,
       split: !!base.split,
