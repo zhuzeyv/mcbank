@@ -210,6 +210,24 @@ function getBodyCanvas(skin, key) {
       g2.fillRect(x, y, 1, 1);
     }
   }
+  // 体积感：顶光 + 右侧暗部（只作用在已有像素上，不破坏细节）
+  g2.globalCompositeOperation = 'source-atop';
+  const vgrad = g2.createLinearGradient(0, 0, 0, BODY_H);
+  vgrad.addColorStop(0, 'rgba(255,255,240,0.14)');
+  vgrad.addColorStop(0.22, 'rgba(255,255,240,0.04)');
+  vgrad.addColorStop(0.75, 'rgba(0,0,0,0)');
+  vgrad.addColorStop(1, 'rgba(0,0,0,0.22)');
+  g2.fillStyle = vgrad;
+  g2.fillRect(0, 0, BODY_W, BODY_H);
+  // 左侧受光、右侧背光
+  const sgrad = g2.createLinearGradient(0, 0, BODY_W, 0);
+  sgrad.addColorStop(0, 'rgba(255,255,255,0.08)');
+  sgrad.addColorStop(0.55, 'rgba(0,0,0,0)');
+  sgrad.addColorStop(1, 'rgba(0,0,0,0.20)');
+  g2.fillStyle = sgrad;
+  g2.fillRect(0, 0, BODY_W, BODY_H);
+  g2.globalCompositeOperation = 'source-over';
+
   // 描边：先在底层画一圈放大的深色，再盖上正常身体（只露出 1px 边缘）
   const out = document.createElement('canvas');
   out.width = BODY_W + 2;
@@ -240,10 +258,15 @@ function drawMCFigure(g, cx, footY, unit, skin, opt) {
   g.scale(flip, 1);
 
   if (opt.shadow !== false) {
-    g.globalAlpha = alpha * 0.3;
+    // 阴影：椭圆 + 外圈柔光（更有体积感）
+    g.globalAlpha = alpha * 0.18;
     g.fillStyle = '#000';
     g.beginPath();
-    g.ellipse(0, 0, 9 * U, 2.4 * U, 0, 0, Math.PI * 2);
+    g.ellipse(1.5 * U, 0.5 * U, 12 * U, 3.4 * U, 0, 0, Math.PI * 2);
+    g.fill();
+    g.globalAlpha = alpha * 0.38;
+    g.beginPath();
+    g.ellipse(0.8 * U, 0.2 * U, 9 * U, 2.4 * U, 0, 0, Math.PI * 2);
     g.fill();
     g.globalAlpha = alpha;
   }
