@@ -231,7 +231,7 @@ const Game = (function () {
     // 吸血（受每秒预算限制）
     if (S.player.lifesteal > 0 && dmg > 0) {
       // 无尽模式吸血效果减半（否则高 DPS 玩家永远能站撸）
-      const lsEff = S.zone.endless ? 0.5 : 1;
+      const lsEff = S.zone.endless ? 0.4 : 1;
       const want = dmg * S.player.lifesteal * lsEff;
       const heal = Math.min(want, S.player.healBudget || 0);
       if (heal >= 0.5) {
@@ -543,7 +543,7 @@ const Game = (function () {
     }
     // 吸血预算：每秒最多回 3.5% 最大生命，最多攒 2 秒的量
     // （防止高 DPS 玩家靠低吸血也能无限回血）
-    const healCap = p.maxHp * 0.025;
+    const healCap = p.maxHp * 0.015;
     p.healBudget = Math.min(healCap * 2, (p.healBudget || 0) + healCap * dt);
 
     // ---- 摄像机（等距：玩家恒在屏幕中心）----
