@@ -543,7 +543,7 @@ const Game = (function () {
     }
     // 吸血预算：每秒最多回 3.5% 最大生命，最多攒 2 秒的量
     // （防止高 DPS 玩家靠低吸血也能无限回血）
-    const healCap = p.maxHp * 0.015;
+    const healCap = p.maxHp * 0.008;   // 所有副本统一 0.8%/秒，吸血只做小幅补给
     p.healBudget = Math.min(healCap * 2, (p.healBudget || 0) + healCap * dt);
 
     // ---- 摄像机（等距：玩家恒在屏幕中心）----
