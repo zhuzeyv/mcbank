@@ -1410,7 +1410,7 @@ function openPauseStats() {
       rows: [
         { k: '减伤', v: pct(p.armor) },
         { k: '吸血', v: pct(p.lifesteal), hl: (p.lifesteal || 0) > 0 },
-        { k: '吸血上限', v: Math.round(p.maxHp * 0.015 * (S.zone.endless ? 0.4 : 1)) + ' / 秒' },
+        { k: '吸血上限', v: (p.maxHp * 0.008 * (S.zone.endless ? 0.4 : 1)).toFixed(1) + ' / 秒' },
         { k: '每秒回复', v: (p.regen || 0).toFixed(1) }
       ]
     },
