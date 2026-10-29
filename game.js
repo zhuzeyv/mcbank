@@ -1816,6 +1816,15 @@ const Game = (function () {
     }
     g.globalAlpha = 1;
 
+    // ---- 光照：左上暖光 → 右下冷影（立体感）----
+    const lg = g.createLinearGradient(W * 0.15, 0, W * 0.85, H);
+    lg.addColorStop(0, 'rgba(255,238,195,0.16)');
+    lg.addColorStop(0.42, 'rgba(255,225,170,0.035)');
+    lg.addColorStop(0.75, 'rgba(60,40,110,0.07)');
+    lg.addColorStop(1, 'rgba(30,15,55,0.16)');
+    g.fillStyle = lg;
+    g.fillRect(0, 0, W, H);
+
     // ---- 暗角 ----
     const vg = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.34, W / 2, H / 2, Math.max(W, H) * 0.74);
     vg.addColorStop(0, 'rgba(0,0,0,0)');
@@ -1863,6 +1872,10 @@ const Game = (function () {
 
     g.save();
     if (e.hitFlash > 0) g.globalAlpha = 0.85;
+    // 深度雾：离玩家越远越淡，增强纵深
+    const eDist = Math.hypot(e.x - S.player.x, e.y - S.player.y);
+    const fog = Math.min(0.55, eDist / 1100);
+    if (fog > 0.02) g.globalAlpha *= (1 - fog * 0.5);
     drawMobFigure(g, sp.x, sp.y, unit, e.skin, e.kind, {
       flip: (S.player.x - e.x) < 0,
       bob: Math.sin(S.time * 9 + e.x * 0.08) * 0.5
